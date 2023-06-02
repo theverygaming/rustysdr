@@ -1,0 +1,16 @@
+name: test
+on: [push, pull_request]
+jobs:
+  build_and_test_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: install dependencies
+        run: sudo apt-get install -y libvolk2-dev
+      - name: test release
+        run: cargo test --release
+      - name: test
+        run: cargo test
