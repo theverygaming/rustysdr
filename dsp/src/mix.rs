@@ -27,7 +27,7 @@ impl Mixer {
         };
     }
 
-    pub fn run(&mut self, input: &mut AlignedVec<complex<f32>>, output_opt: Option<&mut AlignedVec<complex<f32>>>) {
-        volk_rs::kernels::v32fc_s32fc_x2_rotator_32fc(output_opt, input, self.phase_inc, &mut self.phase);
+    pub fn run(&mut self, input: &mut AlignedVec<complex<f32>>, output_opt: Option<&mut [complex<f32>]>) {
+        volk_rs::kernels::volk_32fc_s32fc_x2_rotator_32fc(output_opt, input, self.phase_inc, &mut self.phase);
     }
 }

@@ -3,6 +3,9 @@ name = "dsp"
 version = "0.0.1"
 edition = "2021"
 
+[dependencies]
+fftw = { version = "0.8.0", default-features = false, features = ["system"] }
+
 [dependencies.volk-rs]
 git = 'https://github.com/theverygaming/volk-rs.git'
 

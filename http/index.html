@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        class AudioPlayer {
+            constructor() {
+                let AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.audio_ctx = new AudioContext();
+
+                this.null_audio = this.audio_ctx.createBuffer(1, 1000, this.audio_ctx.sampleRate);
+                this.audio_buffers = [];
+
+                this.buf_source = undefined;
+            }
+            
+            #getNewBuffer() {
+                if (this.audio_buffers.length == 0) {
+                    console.log("no audio data");
+                    this.buf_source = this.audio_ctx.createBufferSource();
+                    this.buf_source.buffer = this.null_audio;
+                } else {
+                    this.buf_source = this.audio_buffers.shift();
+                }
+                this.buf_source.connect(this.audio_ctx.destination);
+            }
+
+            #playNextBuffer() {
+                if (this.buf_source === undefined) {
+                    // initialization
+                    this.#getNewBuffer();
+                    this.buf_source.start();
+                    this.current_end_time = this.audio_ctx.currentTime + this.buf_source.buffer.duration;
+                }
+                this.buf_source.onended = (ev) => {
+                    ev.target.disconnect(this.audio_ctx.destination);
+                    this.#playNextBuffer();
+                }
+                this.#getNewBuffer();
+                this.buf_source.start(this.current_end_time);
+                this.current_end_time = this.current_end_time + this.buf_source.buffer.duration;
+            }
+
+            play() {
+                this.#playNextBuffer();
+            }
+
+            getBufSize() {
+                return this.audio_buffers.length;
+            }
+
+            addBuffer(data, sr) {
+                if (!(data instanceof Float32Array)) {
+                    throw new Error("Invalid audio type");
+                }
+                let buffer = this.audio_ctx.createBuffer(1, data.length, sr);
+                buffer.copyToChannel(data, 0);
+                let bufsrc = this.audio_ctx.createBufferSource();
+                bufsrc.buffer = buffer;
+                this.audio_buffers.push(bufsrc);
+            }
+        }
+    </script>
+    <script>
+        let audio_player = new AudioPlayer();
+        let ws = new WebSocket(`ws://${window.location.host}`);
+        ws.onopen = function () {
+            ws.send("Hii :3,,,");
+            document.addEventListener('click', function (event) {
+                if (!event.target.matches("#audio_start_btn")) {
+                    return;
+                }
+                event.preventDefault();
+                console.log("resuming audio");
+                audio_player.play();
+            }, false);
+            setInterval(function() {
+                if(audio_player.getBufSize() < 3) {
+                    ws.send("grrf GIMME DATA");
+                }
+            }, 0.1);
+        }
+        ws.onerror = function(error) {
+            console.log(error);
+        }
+        ws.onmessage = function (msg) {
+            console.log("received data");
+            if (typeof(msg.data) === "string") {
+                return;
+            }
+            msg.data.arrayBuffer().then((data) => {
+                //audioEngine.pushAudio(data);
+                // TODO: endianness!!
+                audio_player.addBuffer(new Float32Array(data), 48000);
+            }).catch((error) => {
+                console.log('Error!', error);
+            });
+            //console.log(msg.data);
+        };
+    </script>
+</head>
+<body>
+    <button id="audio_start_btn">Start Audio</button>
+</body>
+</html>

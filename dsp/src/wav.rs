@@ -202,7 +202,7 @@ impl<R: io::Read + io::Seek> Reader<R> {
         Ok((fsize / get_sample_format_bytes(self.info.format) as u64) / self.info.channels as u64)
     }
 
-    pub fn get_read_samples(&mut self) -> Result<u64, io::Error> {
+    pub fn get_samples_read(&mut self) -> Result<u64, io::Error> {
         let pos = self.reader.seek(SeekFrom::Current(0))? - self.info.data_start;
         Ok((pos / get_sample_format_bytes(self.info.format) as u64) / self.info.channels as u64)
     }
@@ -417,7 +417,7 @@ impl<W: io::Write + io::Seek> Writer<W> {
         Ok(())
     }
 
-    pub fn write_complex(&mut self, arr: &mut [complex<f32>]) -> Result<(), io::Error> {
+    pub fn write_complex(&mut self, arr: &[complex<f32>]) -> Result<(), io::Error> {
         assert!(self.channels == 2, "WAV: need exactly 2 channels in wav to write complex");
         unsafe {
             self.write_samples(std::slice::from_raw_parts(arr.as_ptr() as *const f32, arr.len() * 2))?;

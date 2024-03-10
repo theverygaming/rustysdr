@@ -1,0 +1,13 @@
+{
+    admin :20190
+}
+
+:8080 {
+	root * http/
+	file_server
+	@websockets {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @websockets localhost:10000
+}
