@@ -6,6 +6,7 @@ stdenv.mkDerivation {
     cargo
     volk
     fftw
+    fftwFloat
     caddy
   ];
 }

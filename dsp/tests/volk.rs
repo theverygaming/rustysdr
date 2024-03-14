@@ -1,10 +1,10 @@
-use volk_rs::{types::complex, vec::AlignedVec};
+use volk_rs::{Complex, vec::AlignedVec};
 
 #[test]
 fn volk_works() {
-    let mut input: AlignedVec<core::ffi::c_short> = AlignedVec::from_elem(1, 500);
-    let mut taps: AlignedVec<complex<f32>> = AlignedVec::from_elem(complex { r: 5.0, i: 2.0 }, 500);
-    let mut result: complex<f32> = complex { r: 0.0, i: 0.0 };
-    volk_rs::kernels::volk_16i_32fc_dot_prod_32fc(&mut result, &mut input, &mut taps);
-    assert!(result.r != 0.0 && result.i != 0.0, "borked");
+    let input: AlignedVec<core::ffi::c_short> = AlignedVec::from_elem(1, 500);
+    let mut taps: AlignedVec<Complex<f32>> = AlignedVec::from_elem(Complex { re: 5.0, im: 2.0 }, 500);
+    let mut result: Complex<f32> = Complex { re: 0.0, im: 0.0 };
+    volk_rs::kernels::volk_16i_32fc_dot_prod_32fc(&input, &mut result, &mut taps);
+    assert!(result.re != 0.0 && result.im != 0.0, "borked");
 }

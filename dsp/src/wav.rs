@@ -1,6 +1,6 @@
 use std::io;
 use std::io::SeekFrom;
-use volk_rs::{types::complex, vec::AlignedVec};
+use volk_rs::{Complex, vec::AlignedVec};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum WavSampleFormat {
@@ -233,13 +233,13 @@ impl<R: io::Read + io::Seek> Reader<R> {
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
-                    volk_rs::kernels::volk_16i_s32f_convert_32f_u8(&mut arr[must_read - leftover..(must_read - leftover) + read_samples], &self.buffer[0..leftover_bytes], 32768.0);
+                    volk_rs::kernels::volk_16i_s32f_convert_32f_u8(&self.buffer[0..leftover_bytes], &mut arr[must_read - leftover..(must_read - leftover) + read_samples], 32768.0);
                 }
                 WavSampleFormat::S32 => {
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_32u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
-                    volk_rs::kernels::volk_32i_s32f_convert_32f_u8(&mut arr[must_read - leftover..(must_read - leftover) + read_samples], &self.buffer[0..leftover_bytes], 2147483648.0);
+                    volk_rs::kernels::volk_32i_s32f_convert_32f_u8(&self.buffer[0..leftover_bytes], &mut arr[must_read - leftover..(must_read - leftover) + read_samples], 2147483648.0);
                 }
                 WavSampleFormat::F32 => {
                     if cfg!(target_endian = "big") {
@@ -272,7 +272,7 @@ impl<R: io::Read + io::Seek> Reader<R> {
         Ok(())
     }
 
-    pub fn read_complex(&mut self, arr: &mut [complex<f32>]) -> Result<(), io::Error> {
+    pub fn read_complex(&mut self, arr: &mut [Complex<f32>]) -> Result<(), io::Error> {
         assert!(self.info.channels == 2, "WAV: need exactly 2 channels in wav to read complex");
         unsafe {
             self.read_samples(std::slice::from_raw_parts_mut(arr.as_mut_ptr() as *mut f32, arr.len() * 2))?;
@@ -325,6 +325,7 @@ impl<W: io::Write + io::Seek> Writer<W> {
         Ok(())
     }
 
+    // TODO: flush on destroy
     pub fn flush(&mut self) -> Result<(), io::Error> {
         let current = self.writer.seek(SeekFrom::Current(0))?;
         self.writer.flush()?;
@@ -377,13 +378,13 @@ impl<W: io::Write + io::Seek> Writer<W> {
                     }
                 }
                 WavSampleFormat::S16 => {
-                    volk_rs::kernels::volk_32f_s32f_convert_16i_u8(&mut self.buffer[0..leftover_bytes], &arr[must_write - leftover..(must_write - leftover) + write_samples], 32767.0);
+                    volk_rs::kernels::volk_32f_s32f_convert_16i_u8(&arr[must_write - leftover..(must_write - leftover) + write_samples], &mut self.buffer[0..leftover_bytes], 32767.0);
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
                 }
                 WavSampleFormat::S32 => {
-                    volk_rs::kernels::volk_32f_s32f_convert_32i_u8(&mut self.buffer[0..leftover_bytes], &arr[must_write - leftover..(must_write - leftover) + write_samples], 2147483647.0);
+                    volk_rs::kernels::volk_32f_s32f_convert_32i_u8(&arr[must_write - leftover..(must_write - leftover) + write_samples], &mut self.buffer[0..leftover_bytes], 2147483647.0);
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
@@ -417,7 +418,7 @@ impl<W: io::Write + io::Seek> Writer<W> {
         Ok(())
     }
 
-    pub fn write_complex(&mut self, arr: &[complex<f32>]) -> Result<(), io::Error> {
+    pub fn write_complex(&mut self, arr: &[Complex<f32>]) -> Result<(), io::Error> {
         assert!(self.channels == 2, "WAV: need exactly 2 channels in wav to write complex");
         unsafe {
             self.write_samples(std::slice::from_raw_parts(arr.as_ptr() as *const f32, arr.len() * 2))?;

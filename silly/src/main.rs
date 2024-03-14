@@ -1,5 +1,5 @@
 use std::fs::File;
-use volk_rs::{types::complex, vec::AlignedVec};
+use volk_rs::{Complex, vec::AlignedVec};
 
 
 fn main() {
