@@ -2,7 +2,8 @@ $build_dir=$args[0]
 
 mkdir rustysdr_windows_pkg
 
-# main executable
+# main executables
+cp $build_dir/release/silly.exe rustysdr_windows_pkg/
 cp $build_dir/release/silly2.exe rustysdr_windows_pkg/
 
 # dynamic libraries
