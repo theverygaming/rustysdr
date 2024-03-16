@@ -6,7 +6,7 @@ fn main() {
     let refcount_reader = std::sync::Arc::new(
         std::sync::Mutex::new(
             dsp::wav::Reader::new(
-                File::open(std::env::temp_dir().join("/home/user/Downloads/rustysdr/doom.wav")).unwrap(),
+                File::open("/home/user/Downloads/rustysdr/doom.wav").unwrap(),
                 true
             ).unwrap()
         )

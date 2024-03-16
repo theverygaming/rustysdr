@@ -10,8 +10,8 @@ fn main() {
     let f_out_path = std::env::args().nth(2).expect("missing output file arg");
     let fft_size = std::env::args().nth(3).expect("missing fft size arg").parse::<usize>().unwrap();
 
-    let mut reader = dsp::wav::Reader::new(File::open(std::env::temp_dir().join(f_in_path)).unwrap(), false).unwrap();
-    let mut writer = dsp::wav::Writer::new(File::create(std::env::temp_dir().join(f_out_path)).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
+    let mut reader = dsp::wav::Reader::new(File::open(f_in_path).unwrap(), false).unwrap();
+    let mut writer = dsp::wav::Writer::new(File::create(f_out_path).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
 
     let buf_len: usize = 1048576;
 
