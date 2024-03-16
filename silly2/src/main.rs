@@ -6,16 +6,22 @@ use dsp::mix::Mixer;
 use dsp::fmnr::FMNr;
 
 fn main() {
-    let mut reader = dsp::wav::Reader::new(File::open(std::env::temp_dir().join("/home/user/Downloads/rustysdr/HDSDR_20220820_023025Z_920800kHz_RF.wav")).unwrap(), false).unwrap();
-    let mut writer = dsp::wav::Writer::new(File::create(std::env::temp_dir().join("/home/user/Downloads/rustysdr/out.wav")).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
-    
-    let mut buffer: AlignedVec<Complex<f32>> = AlignedVec::new_zeroed(2048);
-    let mut buffer2: AlignedVec<Complex<f32>> = AlignedVec::new_zeroed(2048);
+    let f_in_path = std::env::args().nth(1).expect("missing input file arg");
+    let f_out_path = std::env::args().nth(2).expect("missing output file arg");
+    let fft_size = std::env::args().nth(3).expect("missing fft size arg").parse::<usize>().unwrap();
+
+    let mut reader = dsp::wav::Reader::new(File::open(std::env::temp_dir().join(f_in_path)).unwrap(), false).unwrap();
+    let mut writer = dsp::wav::Writer::new(File::create(std::env::temp_dir().join(f_out_path)).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
+
+    let buf_len: usize = 1048576;
+
+    let mut buffer: AlignedVec<Complex<f32>> = AlignedVec::new_zeroed(buf_len);
+    let mut buffer2: AlignedVec<Complex<f32>> = AlignedVec::new_zeroed(buf_len);
 
     let mut chain = DspChain::new();
     //chain.add_block(Box::new(Mixer::new(1000000.0, reader.get_samplerate().into())));
-    chain.add_block(Box::new(FMNr::new(32, 2048)));
-    
+    chain.add_block(Box::new(FMNr::new(fft_size, buf_len)));
+
     let mut n_samps: usize = 0;
 
     let start = std::time::Instant::now();

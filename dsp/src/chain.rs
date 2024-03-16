@@ -12,8 +12,8 @@ impl<T: Clone> DspChain<T> {
     pub fn new() -> DspChain<T> {
         DspChain {
             blocks: Vec::new(),
-            buffer1: AlignedVec::new_zeroed(1000000),
-            buffer2: AlignedVec::new_zeroed(1000000),
+            buffer1: AlignedVec::new_zeroed(1048576),
+            buffer2: AlignedVec::new_zeroed(1048576),
         }
     }
 
