@@ -48,4 +48,11 @@ jobs:
         run: |
           $env:VOLK_LIB_DIR="${{runner.workspace}}\volk-3.1.2\build\lib\"
           cargo build --release
-
+      - name: create archive
+        working-directory: ${{runner.workspace}}
+        run: '&($Env:GITHUB_WORKSPACE + "/create_windows_archive.ps1") ./target'
+      - name: upload archive
+        uses: actions/upload-artifact@v4
+        with:
+            name: rustysdr_windows
+            path: ${{runner.workspace}}/rustysdr_windows.zip
