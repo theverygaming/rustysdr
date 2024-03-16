@@ -7,8 +7,45 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
-        run: sudo apt-get install -y libvolk2-dev
+        run: sudo apt-get install -y libvolk2-dev fftw3-dev
       - name: test release
         run: cargo test --release
       - name: test
         run: cargo test
+
+  build_and_test_windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: cache volk
+        id: cache-volk
+        uses: actions/cache@v4
+        with:
+          path: ${{runner.workspace}}/volk-3.1.2
+          key: ${{ runner.os }}-volk-3.1.2
+      - name: download and build volk
+        if: steps.cache-volk.outputs.cache-hit != 'true'
+        run: |
+          C:/msys64/msys2_shell.cmd -defterm -here -no-start -mingw64 -c "pacman --noconfirm -S --needed base-devel mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-python-pip"
+          C:/msys64/msys2_shell.cmd -defterm -here -no-start -mingw64 -c "pip install mako"
+          Invoke-WebRequest -Uri "https://github.com/gnuradio/volk/releases/download/v3.1.2/volk-3.1.2.tar.gz" -OutFile "${{runner.workspace}}/volk-3.1.2.tar.gz"
+          tar -xvzf "${{runner.workspace}}/volk-3.1.2.tar.gz" -C "${{runner.workspace}}"
+          cd "${{runner.workspace}}/volk-3.1.2"
+          mkdir build && cd build
+          C:/msys64/msys2_shell.cmd -defterm -here -no-start -mingw64 -c "cmake .. -DCMAKE_GNUtoMS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-static-libgcc"
+          C:/msys64/msys2_shell.cmd -defterm -here -no-start -mingw64 -c "ninja"
+          cd ..
+      - name: test release
+        run: |
+          $env:VOLK_LIB_DIR="${{runner.workspace}}\volk-3.1.2\build\lib\"
+          cargo test --release
+      - name: test
+        run: |
+          $env:VOLK_LIB_DIR="${{runner.workspace}}\volk-3.1.2\build\lib\"
+          cargo test
+      - name: build release
+        run: |
+          $env:VOLK_LIB_DIR="${{runner.workspace}}\volk-3.1.2\build\lib\"
+          cargo build --release
+
