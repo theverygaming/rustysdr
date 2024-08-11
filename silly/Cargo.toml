@@ -8,6 +8,3 @@ tungstenite = "0.21.0"
 
 [dependencies.dsp]
 path = '../dsp'
-
-[dependencies.volk-rs]
-git = 'https://github.com/theverygaming/volk-rs.git'

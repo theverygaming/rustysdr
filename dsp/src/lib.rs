@@ -11,4 +11,6 @@ pub mod wav;
 pub mod fmnr;
 pub mod fm_cochannel;
 pub mod windows;
-// TODO: re-export volk-rs
+
+// re-exports
+pub use volk_rs;

@@ -5,6 +5,3 @@ edition = "2021"
 
 [dependencies.dsp]
 path = '../dsp'
-
-[dependencies.volk-rs]
-git = 'https://github.com/theverygaming/volk-rs.git'

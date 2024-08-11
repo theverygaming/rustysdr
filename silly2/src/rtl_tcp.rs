@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use volk_rs::Complex;
-use volk_rs::vec::AlignedVec;
+use dsp::volk_rs::Complex;
+use dsp::volk_rs::vec::AlignedVec;
 
 
 pub struct RtlTcpClient {

@@ -1,5 +1,5 @@
 use std::fs::File;
-use volk_rs::{Complex, vec::AlignedVec};
+use dsp::volk_rs::{Complex, vec::AlignedVec};
 use dsp::block::{DspBlock, DspBlockConv};
 use dsp::chain::DspChain;
 use dsp::mix::Mixer;
