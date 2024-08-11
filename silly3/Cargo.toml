@@ -1,0 +1,10 @@
+[package]
+name = "silly3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.dsp]
+path = '../dsp'
+
+[dependencies.volk-rs]
+git = 'https://github.com/theverygaming/volk-rs.git'

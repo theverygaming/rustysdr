@@ -3,5 +3,6 @@ resolver = "2"
 members = [
   "dsp",
   "silly",
-  "silly2"
+  "silly2",
+  "silly3"
 ]
