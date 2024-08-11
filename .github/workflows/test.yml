@@ -2,12 +2,12 @@ name: test
 on: [push, pull_request]
 jobs:
   build_and_test_linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
-        run: sudo apt-get install -y libvolk2-dev fftw3-dev
+        run: sudo apt-get install -y libvolk-dev fftw3-dev
       - name: test release
         run: cargo test --release
       - name: test
