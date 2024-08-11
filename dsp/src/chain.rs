@@ -1,6 +1,6 @@
 use std::{vec::Vec, boxed::Box};
 use volk_rs::vec::AlignedVec;
-use crate::block::DspBlock;
+use crate::block::{DspBlock};
 
 pub struct DspChain<T> {
     blocks: Vec<Box<dyn DspBlock<T>>>,
@@ -24,16 +24,43 @@ impl<T: Clone> DspChain<T> {
 
 impl<T: Clone> DspBlock<T> for DspChain<T> {
     fn process(&mut self, input: &mut [T], output: &mut [T]) {
-        // horribly inefficient but works:tm: (two extra unnecessary copies made), should definitely be improved
-        let mut buf_in = &mut self.buffer1[0 .. input.len()];
-        let mut buf_out = &mut self.buffer2[0 .. input.len()];
-        buf_in.clone_from_slice(input);
+        let mut buf_in = &mut self.buffer1;
+        let mut buf_out = &mut self.buffer2;
+        buf_in[0..input.len()].clone_from_slice(input);
+
+        let mut last_out_size = input.len();
+
         for block in &mut self.blocks {
-            block.process(buf_in, buf_out);
+            let out_size = block.compute_output_size(last_out_size);
+            block.process(&mut buf_in[0..last_out_size], &mut buf_out[0..out_size]);
+            last_out_size = out_size;
             let buf_in_tmp = buf_in;
             buf_in = buf_out;
             buf_out = buf_in_tmp;
         }
-        output.clone_from_slice(buf_in); // buf_in since they were swapped
+        assert!(output.len() == last_out_size, "invalid output length");
+        output.clone_from_slice(&buf_in[0..last_out_size]); // buf_in since they were swapped
+    }
+
+    fn compute_output_size(&mut self, input_size: usize) -> usize {
+        let mut last_out_size = input_size;
+        for block in &mut self.blocks {
+            let out_size = block.compute_output_size(last_out_size);
+            last_out_size = out_size;
+        }
+        last_out_size
+    }
+
+    fn set_input_size(&mut self, input_size: usize) {
+        let mut max_out_size = input_size;
+        let mut last_out_size = input_size;
+        for block in &mut self.blocks {
+            block.set_input_size(last_out_size);
+            let out_size = block.compute_output_size(last_out_size);
+            last_out_size = out_size;
+            max_out_size = std::cmp::max(max_out_size, last_out_size);
+        }
+        self.buffer1 = AlignedVec::new_zeroed(max_out_size);
+        self.buffer2 = AlignedVec::new_zeroed(max_out_size);
     }
 }

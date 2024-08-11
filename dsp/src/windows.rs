@@ -11,9 +11,12 @@ pub fn nuttall(output: &mut [f32]) {
     cosine(&[0.355768, 0.487396, 0.144232, 0.012604], output);
 }
 
-
 pub fn rectangular(output: &mut [f32]) {
     for i in 0..output.len() {
         output[i] = 1.0;
     }
+}
+
+pub fn blackmanharris(output: &mut [f32]) {
+    cosine(&[0.35875, 0.48829, 0.14128, 0.01168], output);
 }

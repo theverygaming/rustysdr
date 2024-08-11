@@ -6,6 +6,7 @@ use volk_rs::{Complex, vec::AlignedVec};
 pub enum WavSampleFormat {
     U8,
     S16,
+    S24,
     S32,
     F32,
     F64,
@@ -18,6 +19,9 @@ fn get_sample_format_bytes(format: WavSampleFormat) -> usize {
         }
         WavSampleFormat::S16 => {
             return 2;
+        }
+        WavSampleFormat::S24 => {
+            return 3;
         }
         WavSampleFormat::S32 => {
             return 4;
@@ -110,6 +114,7 @@ impl<R: io::Read + io::Seek> Reader<R> {
             1 => match bitspersample {
                 8 => WavSampleFormat::U8,
                 16 => WavSampleFormat::S16,
+                24 => WavSampleFormat::S24,
                 32 => WavSampleFormat::S32,
                 _ => return Err(err),
             },
@@ -173,7 +178,9 @@ impl<R: io::Read + io::Seek> Reader<R> {
 
     pub fn new(mut reader: R, infinite: bool) -> Result<Self, io::Error> {
         let info = Self::read_header(&mut reader)?;
-        let buf = AlignedVec::from_elem(0, 100000 * info.channels as usize); // buffer size must be divisible by 8, as that is the largest possible sample size
+        let buf_size = 100000;
+        let misalign = buf_size % get_sample_format_bytes(info.format);
+        let buf = AlignedVec::from_elem(0, (buf_size-misalign) * info.channels as usize);
 
         Ok(Reader {
             reader: reader,
@@ -234,6 +241,16 @@ impl<R: io::Read + io::Seek> Reader<R> {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
                     volk_rs::kernels::volk_16i_s32f_convert_32f_u8(&self.buffer[0..leftover_bytes], &mut arr[must_read - leftover..(must_read - leftover) + read_samples], 32768.0);
+                }
+                WavSampleFormat::S24 => {
+                    let scalar = 1.0 / 8388608.0;
+                    for i in 0..(leftover_bytes/3) {
+                        let mut n: i32 = self.buffer[i*3] as i32 | ((self.buffer[(i*3)+1] as i32) << 8) | ((self.buffer[(i*3)+2] as i32) << 16);
+                        // sign-extend
+                        n <<= 8;
+                        n >>= 8;
+                        arr[must_read - leftover..(must_read - leftover) + read_samples][i] = (n as f32) * scalar;
+                    }
                 }
                 WavSampleFormat::S32 => {
                     if cfg!(target_endian = "big") {
@@ -383,6 +400,7 @@ impl<W: io::Write + io::Seek> Writer<W> {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
                 }
+                WavSampleFormat::S24 => return Err(io::Error::new(io::ErrorKind::Other, "WAV: cannot write S24")),
                 WavSampleFormat::S32 => {
                     volk_rs::kernels::volk_32f_s32f_convert_32i_u8(&arr[must_write - leftover..(must_write - leftover) + write_samples], &mut self.buffer[0..leftover_bytes], 2147483647.0);
                     if cfg!(target_endian = "big") {

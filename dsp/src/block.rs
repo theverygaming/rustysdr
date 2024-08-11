@@ -4,6 +4,8 @@
 
 pub trait DspBlock<T> {
     fn process(&mut self, input: &mut [T], output: &mut [T]);
+    fn compute_output_size(&mut self, input_size: usize) -> usize;
+    fn set_input_size(&mut self, input_size: usize);
 }
 
 pub trait DspBlockConv<Tin, Tout> {

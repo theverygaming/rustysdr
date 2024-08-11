@@ -32,4 +32,10 @@ impl DspBlock<Complex<f32>> for Mixer {
     fn process(&mut self, input: &mut [Complex<f32>], output: &mut [Complex<f32>]) {
         volk_rs::kernels::volk_32fc_s32fc_x2_rotator_32fc(input, output, self.phase_inc, &mut self.phase);
     }
+
+    fn compute_output_size(&mut self, input_size: usize) -> usize {
+        input_size
+    }
+
+    fn set_input_size(&mut self, _input_size: usize) {}
 }
