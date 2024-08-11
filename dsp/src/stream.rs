@@ -35,7 +35,7 @@ impl<T> Stream<T> {
             read_done = self.read_done_cv.wait(read_done).unwrap();
         }
 
-        std::mem::swap(&mut self.buf_write.lock().unwrap(), &mut self.buf_read.lock().unwrap());
+        std::mem::swap(&mut *self.buf_write.try_lock().unwrap(), &mut *self.buf_read.try_lock().unwrap());
         *read_done = false;
 
         *self.write_size.lock().unwrap() = n;
@@ -58,6 +58,7 @@ impl<T> Stream<T> {
 
     // called when reading has been finished
     pub fn flush(self: &Arc<Self>) {
+        *self.write_done.lock().unwrap() = false;
         *self.read_done.lock().unwrap() = true;
         self.read_done_cv.notify_all();
     }
