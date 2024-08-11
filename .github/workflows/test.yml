@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
-        run: sudo apt-get install -y libvolk-dev fftw3-dev
+        run: sudo apt-get install -y libvolk-dev libfftw3-dev
       - name: test release
         run: cargo test --release
       - name: test
