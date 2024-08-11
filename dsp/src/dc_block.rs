@@ -1,9 +1,5 @@
-use volk_rs::vec::AlignedVec;
-use fftw::plan::*;
-use fftw::types::*;
 use volk_rs::Complex;
 use crate::block::DspBlock;
-use crate::windows;
 
 // https://github.com/AlexandreRouma/SDRPlusPlus/blob/e1c48e9a1f6eca5b7c0a9cc8e0029181ac6c5f2d/core/src/dsp/correction/dc_blocker.h#L4
 
