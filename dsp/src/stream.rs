@@ -35,7 +35,7 @@ impl<T> Stream<T> {
             read_done = self.write_cv.wait(read_done).unwrap();
         }
 
-        std::mem::swap(&mut *self.buf_write.try_lock().unwrap(), &mut *self.buf_read.try_lock().unwrap());
+        std::mem::swap(&mut *self.buf_write.lock().unwrap(), &mut *self.buf_read.lock().unwrap());
         *read_done = false;
 
         *self.write_size.lock().unwrap() = n;

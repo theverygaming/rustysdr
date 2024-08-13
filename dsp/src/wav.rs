@@ -342,7 +342,7 @@ impl<W: io::Write + io::Seek> Writer<W> {
         Ok(())
     }
 
-    // TODO: flush on destroy
+    // FXIME: flush on destroy
     pub fn flush(&mut self) -> Result<(), io::Error> {
         let current = self.writer.seek(SeekFrom::Current(0))?;
         self.writer.flush()?;

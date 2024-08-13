@@ -35,30 +35,29 @@ pub trait Block<TIn, TOut> {
 macro_rules! impl_block{
     ($blockname:ident, $traitname:ident, $($body:item),* $(,)?)=>{
         trait $traitname {
-            fn run(&mut self) -> bool;
+            fn run(&self) -> bool;
         }
 
-        impl<T: 'static> Block<T, T> for Arc<Mutex<$blockname<T>>>
+        impl<T: 'static> Block<T, T> for Arc<$blockname<T>>
         where
-            $blockname<T>: $traitname + Send,
+            $blockname<T>: $traitname,
+            T: Send,
         {
             $($body)*
 
             fn start(&mut self) {
                 let clone = self.clone();
-                self.lock().unwrap().thread_handle = Some(thread::spawn(move || {
+                *self.thread_handle.lock().unwrap() = Some(thread::spawn(move || {
                     loop {
-                        let mut unlocked = clone.lock().unwrap();
-                        if !unlocked.run() {
+                        if !clone.run() {
                             break;
                         }
-                        drop(unlocked);
                     }
                 }));
             }
 
             fn stop(&mut self) {
-                self.lock().unwrap().thread_handle.take().expect("thread must be running to be stopped").join().unwrap();
+                self.thread_handle.lock().unwrap().take().expect("thread must be running to be stopped").join().unwrap();
             }
         }
     }
