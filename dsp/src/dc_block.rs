@@ -38,7 +38,17 @@ impl DcBlock<Complex<f32>> {
     }
 }
 
-crate::impl_block!(DcBlock, DcBlockImpl);
+crate::impl_block!(
+    DcBlock,
+    DcBlockImpl,
+    fn get_input(&mut self) -> Option<Arc<Stream<T>>> {
+        Some(self.lock().unwrap().input.clone())
+    }
+
+    fn get_output(&mut self) -> Option<Arc<Stream<T>>> {
+        Some(self.lock().unwrap().output.clone())
+    }
+);
 
 impl DcBlockImpl for DcBlock<f32> {
     fn run(&mut self) -> bool {

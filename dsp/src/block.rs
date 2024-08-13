@@ -26,30 +26,24 @@ pub trait DspSink<T> {
 
 pub trait Block<TIn, TOut> {
     // public methods
-    fn get_input(&mut self) -> Arc<Stream<TIn>>;
-    fn get_output(&mut self) -> Arc<Stream<TOut>>;
+    fn get_input(&mut self) -> Option<Arc<Stream<TIn>>>;
+    fn get_output(&mut self) -> Option<Arc<Stream<TOut>>>;
     fn start(&mut self);
     fn stop(&mut self);
 }
 
 #[macro_export]
 macro_rules! impl_block{
-    ($a:ident, $b:ident)=>{
-        trait $b {
+    ($blockname:ident, $traitname:ident, $($body:item)*)=>{
+        trait $traitname {
             fn run(&mut self) -> bool;
         }
 
-        impl<T: 'static> Block<T, T> for Arc<Mutex<$a<T>>>
+        impl<T: 'static> Block<T, T> for Arc<Mutex<$blockname<T>>>
         where
-            $a<T>: $b + Send,
+            $blockname<T>: $traitname + Send,
         {
-            fn get_input(&mut self) -> Arc<Stream<T>> {
-                self.lock().unwrap().input.clone()
-            }
-
-            fn get_output(&mut self) -> Arc<Stream<T>> {
-                self.lock().unwrap().output.clone()
-            }
+            $($body)*
 
             fn start(&mut self) {
                 let clone = self.clone();
