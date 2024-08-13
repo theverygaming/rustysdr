@@ -11,6 +11,7 @@ pub struct DcBlock<T> {
     rate: f32,
     input: Arc<Stream<T>>,
     output: Arc<Stream<T>>,
+    thread_handle: Option<thread::JoinHandle<()>>,
 }
 
 impl DcBlock<f32> {
@@ -20,6 +21,7 @@ impl DcBlock<f32> {
             rate: 0.0001,
             input: Stream::new(stream_size),
             output: Stream::new(stream_size),
+            thread_handle: None,
         })
     }
 }
@@ -31,51 +33,20 @@ impl DcBlock<Complex<f32>> {
             rate: 0.01,
             input: Stream::new(stream_size),
             output: Stream::new(stream_size),
+            thread_handle: None,
         }))
     }
 }
 
-trait DcBlockSupportedType {
-    fn run(&mut self) -> bool;
-}
+crate::impl_block!(DcBlock, DcBlockImpl);
 
-impl<T: 'static> Block<T, T> for Arc<Mutex<DcBlock<T>>>
-where
-    DcBlock<T>: DcBlockSupportedType + Send,
-{
-    fn get_input(&mut self) -> Arc<Stream<T>> {
-        self.lock().unwrap().input.clone()
-    }
-
-    fn get_output(&mut self) -> Arc<Stream<T>> {
-        self.lock().unwrap().output.clone()
-    }
-
-    fn start(&mut self) {
-        let clone = self.clone();
-        thread::spawn(move || {
-            loop {
-                let mut unlocked = clone.lock().unwrap();
-                if !unlocked.run() {
-                    break;
-                }
-                drop(unlocked);
-            }
-        });
-    }
-
-    fn stop(&mut self) {
-        //handle.join().unwrap();
-    }
-}
-
-impl DcBlockSupportedType for DcBlock<f32> {
+impl DcBlockImpl for DcBlock<f32> {
     fn run(&mut self) -> bool {
         true
     }
 }
 
-impl DcBlockSupportedType for DcBlock<Complex<f32>> {
+impl DcBlockImpl for DcBlock<Complex<f32>> {
     fn run(&mut self) -> bool {
         true
     }

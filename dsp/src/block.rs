@@ -31,3 +31,42 @@ pub trait Block<TIn, TOut> {
     fn start(&mut self);
     fn stop(&mut self);
 }
+
+#[macro_export]
+macro_rules! impl_block{
+    ($a:ident, $b:ident)=>{
+        trait $b {
+            fn run(&mut self) -> bool;
+        }
+
+        impl<T: 'static> Block<T, T> for Arc<Mutex<$a<T>>>
+        where
+            $a<T>: $b + Send,
+        {
+            fn get_input(&mut self) -> Arc<Stream<T>> {
+                self.lock().unwrap().input.clone()
+            }
+
+            fn get_output(&mut self) -> Arc<Stream<T>> {
+                self.lock().unwrap().output.clone()
+            }
+
+            fn start(&mut self) {
+                let clone = self.clone();
+                self.lock().unwrap().thread_handle = Some(thread::spawn(move || {
+                    loop {
+                        let mut unlocked = clone.lock().unwrap();
+                        if !unlocked.run() {
+                            break;
+                        }
+                        drop(unlocked);
+                    }
+                }));
+            }
+
+            fn stop(&mut self) {
+                self.lock().unwrap().thread_handle.take().expect("thread must be running to be stopped").join().unwrap();
+            }
+        }
+    }
+}
