@@ -1,4 +1,7 @@
+use std::sync::Arc;
 use volk_rs::vec::AlignedVec;
+use crate::stream::Stream;
+
 // TODO: function that returns name for block & info about it's parameters so a graph of them can be generated
 // admin interface -> view DSP chain?
 
@@ -21,11 +24,10 @@ pub trait DspSink<T> {
     fn process(&mut self, input: &[T]);
 }
 
-
-/*pub trait Block<T_IN, T_OUT> {
-
+pub trait Block<TIn, TOut> {
+    // public methods
+    fn get_input(&mut self) -> Arc<Stream<TIn>>;
+    fn get_output(&mut self) -> Arc<Stream<TOut>>;
+    fn start(&mut self);
+    fn stop(&mut self);
 }
-
-pub struct BlockImpl<T_IN, T_OUT> {
-
-}*/
