@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use volk_rs::Complex;
 use crate::block::Block;
@@ -25,13 +25,13 @@ impl DcBlock<f32> {
 }
 
 impl DcBlock<Complex<f32>> {
-    pub fn new(stream_size: usize) -> Arc<Self> {
-        Arc::new(DcBlock {
+    pub fn new(stream_size: usize) -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(DcBlock {
             offset: Complex {re: 0.0, im: 0.0},
             rate: 0.01,
             input: Stream::new(stream_size),
             output: Stream::new(stream_size),
-        })
+        }))
     }
 }
 
@@ -39,22 +39,28 @@ trait DcBlockSupportedType {
     fn run(&mut self) -> bool;
 }
 
-impl<T> Block<T, T> for Arc<DcBlock<T>>
+impl<T: 'static> Block<T, T> for Arc<Mutex<DcBlock<T>>>
 where
-    T: DcBlockSupportedType,
+    DcBlock<T>: DcBlockSupportedType + Send,
 {
     fn get_input(&mut self) -> Arc<Stream<T>> {
-        self.input.clone()
+        self.lock().unwrap().input.clone()
     }
 
     fn get_output(&mut self) -> Arc<Stream<T>> {
-        self.output.clone()
+        self.lock().unwrap().output.clone()
     }
 
     fn start(&mut self) {
-        let mut clone = self.clone();
+        let clone = self.clone();
         thread::spawn(move || {
-            while clone.run() {}
+            loop {
+                let mut unlocked = clone.lock().unwrap();
+                if !unlocked.run() {
+                    break;
+                }
+                drop(unlocked);
+            }
         });
     }
 
