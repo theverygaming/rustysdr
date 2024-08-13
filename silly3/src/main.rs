@@ -32,10 +32,20 @@ fn main() {
         let mut buf = stream.buf_write.lock().unwrap();
 
         let n_read = buf.len();
-        reader.read_samples(&mut buf).unwrap();
+        match reader.read_samples(&mut buf) {
+            Ok(()) => {}
+            Err(e) => {
+                block_read.stop();
+                block_read.get_input().unwrap().stop_writer();
+                block_read.get_output().unwrap().stop_reader();
+                return;
+            }
+        }
         drop(buf);
 
-        stream.swap(n_read);
+        if !stream.swap(n_read) {
+            return;
+        }
     });
 
     block.start();

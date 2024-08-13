@@ -43,3 +43,5 @@ fn test_stream() {
     reader_thread.join().unwrap();
     writer_thread.join().unwrap();
 }
+
+// FIXME: stream start & stop tests

@@ -1,9 +1,5 @@
 use crate::stream::Stream;
 use std::sync::Arc;
-use volk_rs::vec::AlignedVec;
-
-// TODO: function that returns name for block & info about it's parameters so a graph of them can be generated
-// admin interface -> view DSP chain?
 
 pub trait DspBlock<T> {
     fn process(&mut self, input: &mut [T], output: &mut [T]);
@@ -46,6 +42,18 @@ macro_rules! impl_block{
             $($body)*
 
             fn start(&mut self) {
+                match self.get_input() {
+                    Some(stream) => {
+                        stream.start_reader();
+                    }
+                    None => {}
+                }
+                match self.get_output() {
+                    Some(stream) => {
+                        stream.start_writer();
+                    }
+                    None => {}
+                }
                 let clone = self.clone();
                 *self.thread_handle.lock().unwrap() = Some(thread::spawn(move || {
                     loop {
@@ -57,7 +65,19 @@ macro_rules! impl_block{
             }
 
             fn stop(&mut self) {
-                self.thread_handle.lock().unwrap().take().expect("thread must be running to be stopped").join().unwrap();
+                match self.get_input() {
+                    Some(stream) => {
+                        stream.stop_reader();
+                    }
+                    None => {}
+                }
+                match self.get_output() {
+                    Some(stream) => {
+                        stream.stop_writer();
+                    }
+                    None => {}
+                }
+                self.thread_handle.lock().unwrap().take().expect("thread must be running to be stopped").join().expect("worker thread panic");
             }
         }
     }

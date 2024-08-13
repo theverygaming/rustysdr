@@ -51,7 +51,12 @@ crate::impl_block!(
 
 impl DcBlockImpl for DcBlock<f32> {
     fn run(&self) -> bool {
-        let n_read = self.input.read().unwrap();
+        let n_read = match self.input.read() {
+            Some(x) => x,
+            None => {
+                return false;
+            }
+        };
         let buf_r = self.input.buf_read.lock().unwrap();
         let mut buf_w = self.output.buf_write.lock().unwrap();
 
@@ -63,7 +68,9 @@ impl DcBlockImpl for DcBlock<f32> {
         }
         drop(buf_w);
 
-        self.output.swap(n_read);
+        if !self.output.swap(n_read) {
+            return false;
+        }
         self.input.flush();
         true
     }
@@ -71,7 +78,12 @@ impl DcBlockImpl for DcBlock<f32> {
 
 impl DcBlockImpl for DcBlock<Complex<f32>> {
     fn run(&self) -> bool {
-        let n_read = self.input.read().unwrap();
+        let n_read = match self.input.read() {
+            Some(x) => x,
+            None => {
+                return false;
+            }
+        };
         let buf_r = self.input.buf_read.lock().unwrap();
         let mut buf_w = self.output.buf_write.lock().unwrap();
 
@@ -83,7 +95,9 @@ impl DcBlockImpl for DcBlock<Complex<f32>> {
         }
         drop(buf_w);
 
-        self.output.swap(n_read);
+        if !self.output.swap(n_read) {
+            return false;
+        }
         self.input.flush();
         true
     }
