@@ -1,6 +1,6 @@
 use std::io;
 use std::io::SeekFrom;
-use volk_rs::{Complex, vec::AlignedVec};
+use volk_rs::{vec::AlignedVec, Complex};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum WavSampleFormat {
@@ -180,7 +180,7 @@ impl<R: io::Read + io::Seek> Reader<R> {
         let info = Self::read_header(&mut reader)?;
         let buf_size = 100000;
         let misalign = buf_size % get_sample_format_bytes(info.format);
-        let buf = AlignedVec::from_elem(0, (buf_size-misalign) * info.channels as usize);
+        let buf = AlignedVec::from_elem(0, (buf_size - misalign) * info.channels as usize);
 
         Ok(Reader {
             reader: reader,
@@ -244,8 +244,8 @@ impl<R: io::Read + io::Seek> Reader<R> {
                 }
                 WavSampleFormat::S24 => {
                     let scalar = 1.0 / 8388608.0;
-                    for i in 0..(leftover_bytes/3) {
-                        let mut n: i32 = self.buffer[i*3] as i32 | ((self.buffer[(i*3)+1] as i32) << 8) | ((self.buffer[(i*3)+2] as i32) << 16);
+                    for i in 0..(leftover_bytes / 3) {
+                        let mut n: i32 = self.buffer[i * 3] as i32 | ((self.buffer[(i * 3) + 1] as i32) << 8) | ((self.buffer[(i * 3) + 2] as i32) << 16);
                         // sign-extend
                         n <<= 8;
                         n >>= 8;

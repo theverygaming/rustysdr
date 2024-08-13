@@ -1,10 +1,9 @@
+use crate::stream::Stream;
 use std::sync::Arc;
 use volk_rs::vec::AlignedVec;
-use crate::stream::Stream;
 
 // TODO: function that returns name for block & info about it's parameters so a graph of them can be generated
 // admin interface -> view DSP chain?
-
 
 pub trait DspBlock<T> {
     fn process(&mut self, input: &mut [T], output: &mut [T]);
@@ -34,7 +33,7 @@ pub trait Block<TIn, TOut> {
 
 #[macro_export]
 macro_rules! impl_block{
-    ($blockname:ident, $traitname:ident, $($body:item)*)=>{
+    ($blockname:ident, $traitname:ident, $($body:item),* $(,)?)=>{
         trait $traitname {
             fn run(&mut self) -> bool;
         }

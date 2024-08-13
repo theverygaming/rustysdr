@@ -20,7 +20,7 @@ pub fn lowpass(taps: &mut [f32], samplerate: f32, cutoff: f32, mut gain: f32) {
     // normalize
     // https://github.com/SatDump/SatDump/blob/ecb05a11dee9a9c927d9d3c981c28dcdc1b8e74b/src-core/common/dsp/filter/firdes.cpp#L113
     let mut fmax = taps[taps.len() / 2];
-    for i in (taps.len() / 2)+1..taps.len() {
+    for i in (taps.len() / 2) + 1..taps.len() {
         fmax += 2.0 * taps[i];
     }
     gain /= fmax;

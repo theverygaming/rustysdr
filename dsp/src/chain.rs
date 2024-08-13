@@ -1,6 +1,6 @@
-use std::{vec::Vec, boxed::Box};
+use crate::block::DspBlock;
+use std::{boxed::Box, vec::Vec};
 use volk_rs::vec::AlignedVec;
-use crate::block::{DspBlock};
 
 pub struct DspChain<T> {
     blocks: Vec<Box<dyn DspBlock<T>>>,

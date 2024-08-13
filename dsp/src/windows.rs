@@ -3,7 +3,7 @@ fn cosine(params: &[f32], output: &mut [f32]) {
     let n2 = output.len() as f32;
     for i in 0..output.len() {
         let n = i as f32;
-        output[i] = params[0] - params[1] * f32::cos((2.0*pi*n)/n2) + params[2] * f32::cos((4.0*pi*n)/n2) - params[3] * f32::cos((6.0*pi*n)/n2);
+        output[i] = params[0] - params[1] * f32::cos((2.0 * pi * n) / n2) + params[2] * f32::cos((4.0 * pi * n) / n2) - params[3] * f32::cos((6.0 * pi * n) / n2);
     }
 }
 

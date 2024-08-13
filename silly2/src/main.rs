@@ -1,14 +1,14 @@
-use std::fs::File;
-use dsp::volk_rs::{Complex, vec::AlignedVec};
+use dsp::am::AmDemod;
 use dsp::block::{DspBlock, DspBlockConv};
 use dsp::chain::DspChain;
-use dsp::mix::Mixer;
-use dsp::fmnr::FMNr;
-use dsp::am::AmDemod;
-use dsp::fm_cochannel::FMCochannelCancel;
-use dsp::resamp::RationalResampler;
-use dsp::fir::FirFilter;
 use dsp::filters;
+use dsp::fir::FirFilter;
+use dsp::fm_cochannel::FMCochannelCancel;
+use dsp::fmnr::FMNr;
+use dsp::mix::Mixer;
+use dsp::resamp::RationalResampler;
+use dsp::volk_rs::{vec::AlignedVec, Complex};
+use std::fs::File;
 mod rtl_tcp;
 
 fn main() {
@@ -17,8 +17,8 @@ fn main() {
     let fft_size = std::env::args().nth(3).expect("missing fft size arg").parse::<usize>().unwrap();
 
     let mut reader = dsp::wav::Reader::new(File::open(f_in_path).unwrap(), false).unwrap();
-    let mut writer = dsp::wav::Writer::new(File::create(f_out_path).unwrap(), 1024000/40, reader.get_channels(), dsp::wav::WavSampleFormat::S16).unwrap();
-    let mut writer_real = dsp::wav::Writer::new(File::create("/tmp/out_real.wav").unwrap(), 1024000/40, 1, dsp::wav::WavSampleFormat::S16).unwrap();
+    let mut writer = dsp::wav::Writer::new(File::create(f_out_path).unwrap(), 1024000 / 40, reader.get_channels(), dsp::wav::WavSampleFormat::S16).unwrap();
+    let mut writer_real = dsp::wav::Writer::new(File::create("/tmp/out_real.wav").unwrap(), 1024000 / 40, 1, dsp::wav::WavSampleFormat::S16).unwrap();
 
     let buf_len: usize = 1048576;
 
@@ -28,7 +28,7 @@ fn main() {
     chain.add_block(Box::new(Mixer::new(-305000.0, 1024000 as f64)));
     chain.add_block(Box::new(RationalResampler::new(1, 40)));
     let mut taps = AlignedVec::new_zeroed(127);
-    dsp::filters::lowpass(&mut taps, (1024000/40) as f32, 5000.0, 1.0);
+    dsp::filters::lowpass(&mut taps, (1024000 / 40) as f32, 5000.0, 1.0);
     let mut fir = Box::new(FirFilter::new());
     fir.set_taps(taps);
     chain.add_block(fir);
@@ -67,7 +67,7 @@ fn main() {
         am_demod.process(&mut buffer2, &mut buffer3);
         writer_real.write_samples(&buffer3).unwrap();
         n_samps += buffer.len();
-        if n_samps > 1024000*20 {
+        if n_samps > 1024000 * 20 {
             break;
         }
     }

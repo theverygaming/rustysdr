@@ -1,4 +1,4 @@
-use volk_rs::{Complex, vec::AlignedVec};
+use volk_rs::{vec::AlignedVec, Complex};
 
 #[test]
 fn volk_works() {

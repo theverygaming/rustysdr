@@ -1,19 +1,13 @@
+use dsp::volk_rs::{vec::AlignedVec, Complex};
 use std::fs::File;
-use dsp::volk_rs::{Complex, vec::AlignedVec};
-
 
 fn main() {
-    let refcount_reader = std::sync::Arc::new(
-        std::sync::Mutex::new(
-            dsp::wav::Reader::new(
-                File::open("/home/user/Downloads/rustysdr/doom.wav").unwrap(),
-                true
-            ).unwrap()
-        )
-    );
+    let refcount_reader = std::sync::Arc::new(std::sync::Mutex::new(
+        dsp::wav::Reader::new(File::open("/home/user/Downloads/rustysdr/doom.wav").unwrap(), true).unwrap(),
+    ));
     //let reader = dsp::wav::Reader::new(File::open(std::env::temp_dir().join("/home/user/Downloads/rustysdr/doom.wav")).unwrap(), true).unwrap();
     //let mut writer = dsp::wav::Writer::new(File::create(std::env::temp_dir().join("/home/user/Downloads/rustysdr/out.wav")).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
-    
+
     //let mut buffer: AlignedVec<complex<f32>> = AlignedVec::from_elem(complex { r: 0.0, i: 0.0 }, 1000);
 
     //reader.read_complex(&mut buffer).unwrap();
@@ -22,7 +16,7 @@ fn main() {
     let server = std::net::TcpListener::bind("127.0.0.1:10000").unwrap();
     for stream in server.incoming() {
         let reader_clone = refcount_reader.clone(); // increments refcount, mutex makes sure it's locked
-        std::thread::spawn (move || {
+        std::thread::spawn(move || {
             let mut counter: u64 = 0;
             let mut websocket = tungstenite::accept(stream.unwrap()).unwrap();
             loop {

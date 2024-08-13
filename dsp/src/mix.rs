@@ -1,5 +1,5 @@
-use volk_rs::Complex;
 use crate::block::DspBlock;
+use volk_rs::Complex;
 
 // maybe call it frequencyXlator instead? https://github.com/randomradioprojects/SDRPlusPlus/blob/0487aa9e28e8b3ca7d82aef305301fb57b154329/core/src/dsp/channel/frequency_xlator.h#L44
 pub struct Mixer {

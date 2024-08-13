@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, Condvar};
+use std::sync::{Arc, Condvar, Mutex};
 use volk_rs::vec::AlignedVec;
 
 // TODO: implement starting & stopping streams

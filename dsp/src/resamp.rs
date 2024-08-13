@@ -1,8 +1,7 @@
-use volk_rs::vec::AlignedVec;
-use volk_rs::Complex;
 use crate::block::DspBlock;
 use crate::filters;
-
+use volk_rs::vec::AlignedVec;
+use volk_rs::Complex;
 
 pub struct RationalResampler {
     decimation: u32,
@@ -74,11 +73,15 @@ impl DspBlock<Complex<f32>> for RationalResampler {
         assert!(output.len() == self.compute_output_size(input.len()), "incorrect output size");
         let mut out_idx = 0;
         let n_taps = self.filters[0].len();
-        self.delay_buf[n_taps..n_taps+self.block_size].copy_from_slice(input);
+        self.delay_buf[n_taps..n_taps + self.block_size].copy_from_slice(input);
 
         while self.offset < input.len() as u32 {
             // https://github.com/AlexandreRouma/SDRPlusPlus/blob/67520ea45e57b17e815655c71713779a638d648a/core/src/dsp/multirate/polyphase_resampler.h#L75
-            volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(&self.delay_buf[(self.offset as usize)..(self.offset as usize)+n_taps], &mut output[out_idx], &self.filters[self.phase as usize]);
+            volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(
+                &self.delay_buf[(self.offset as usize)..(self.offset as usize) + n_taps],
+                &mut output[out_idx],
+                &self.filters[self.phase as usize],
+            );
             out_idx += 1;
 
             self.phase += self.decimation;
@@ -88,7 +91,7 @@ impl DspBlock<Complex<f32>> for RationalResampler {
 
         self.offset -= input.len() as u32;
 
-        self.delay_buf.copy_within(self.block_size..n_taps+self.block_size, 0);
+        self.delay_buf.copy_within(self.block_size..n_taps + self.block_size, 0);
     }
 
     fn compute_output_size(&mut self, input_size: usize) -> usize {

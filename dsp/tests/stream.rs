@@ -1,9 +1,9 @@
-use std::thread;
 use dsp::stream::Stream;
+use std::thread;
 
 fn get_next_num(counter: &mut usize) -> usize {
     *counter += 1;
-    return *counter
+    return *counter;
 }
 
 #[test]

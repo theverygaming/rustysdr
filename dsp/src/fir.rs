@@ -1,7 +1,6 @@
+use crate::block::DspBlock;
 use volk_rs::vec::AlignedVec;
 use volk_rs::Complex;
-use crate::block::DspBlock;
-
 
 pub struct FirFilter {
     block_size: usize,
@@ -28,13 +27,13 @@ impl FirFilter {
 impl DspBlock<Complex<f32>> for FirFilter {
     fn process(&mut self, input: &mut [Complex<f32>], output: &mut [Complex<f32>]) {
         let n_taps = self.taps.len();
-        self.delay_buf[n_taps..n_taps+self.block_size].copy_from_slice(input);
+        self.delay_buf[n_taps..n_taps + self.block_size].copy_from_slice(input);
 
         for i in 0..output.len() {
-            volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(&self.delay_buf[i..i+n_taps], &mut output[i], &self.taps);
+            volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(&self.delay_buf[i..i + n_taps], &mut output[i], &self.taps);
         }
 
-        self.delay_buf.copy_within(self.block_size..n_taps+self.block_size, 0);
+        self.delay_buf.copy_within(self.block_size..n_taps + self.block_size, 0);
     }
 
     fn compute_output_size(&mut self, input_size: usize) -> usize {
