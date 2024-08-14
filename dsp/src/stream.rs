@@ -1,8 +1,6 @@
 use std::sync::{Arc, Condvar, Mutex};
 use volk_rs::vec::AlignedVec;
 
-// TODO: implement starting & stopping streams
-
 pub struct Stream<T> {
     pub buf_write: Mutex<AlignedVec<T>>,
     pub buf_read: Mutex<AlignedVec<T>>,
