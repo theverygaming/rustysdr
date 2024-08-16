@@ -41,11 +41,11 @@ impl DcBlock<Complex<f32>> {
 crate::impl_block!(
     DcBlock,
     DcBlockImpl,
-    fn get_input(&mut self) -> Option<Arc<Stream<T>>> {
-        Some(self.input.clone())
+    fn get_input(&mut self) -> Vec<Arc<Stream<T>>> {
+        vec![self.input.clone()]
     },
-    fn get_output(&mut self) -> Option<Arc<Stream<T>>> {
-        Some(self.output.clone())
+    fn get_output(&mut self) -> Vec<Arc<Stream<T>>> {
+        vec![self.output.clone()]
     }
 );
 

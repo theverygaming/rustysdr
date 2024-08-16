@@ -21,8 +21,8 @@ pub trait DspSink<T> {
 
 pub trait Block<TIn, TOut> {
     // public methods
-    fn get_input(&mut self) -> Option<Arc<Stream<TIn>>>;
-    fn get_output(&mut self) -> Option<Arc<Stream<TOut>>>;
+    fn get_input(&mut self) -> Vec<Arc<Stream<TIn>>>;
+    fn get_output(&mut self) -> Vec<Arc<Stream<TOut>>>;
     fn start(&mut self);
     fn stop(&mut self);
 }
@@ -42,17 +42,11 @@ macro_rules! impl_block{
             $($body)*
 
             fn start(&mut self) {
-                match self.get_input() {
-                    Some(stream) => {
-                        stream.start_reader();
-                    }
-                    None => {}
+                for s in self.get_input() {
+                    s.start_reader();
                 }
-                match self.get_output() {
-                    Some(stream) => {
-                        stream.start_writer();
-                    }
-                    None => {}
+                for s in self.get_output() {
+                    s.start_writer();
                 }
                 let clone = self.clone();
                 *self.thread_handle.lock().unwrap() = Some(thread::spawn(move || {
@@ -65,17 +59,11 @@ macro_rules! impl_block{
             }
 
             fn stop(&mut self) {
-                match self.get_input() {
-                    Some(stream) => {
-                        stream.stop_reader();
-                    }
-                    None => {}
+                for s in self.get_input() {
+                    s.stop_reader();
                 }
-                match self.get_output() {
-                    Some(stream) => {
-                        stream.stop_writer();
-                    }
-                    None => {}
+                for s in self.get_output() {
+                    s.stop_writer();
                 }
                 self.thread_handle.lock().unwrap().take().expect("thread must be running to be stopped").join().expect("worker thread panic");
             }

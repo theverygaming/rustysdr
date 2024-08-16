@@ -16,7 +16,7 @@ fn main() {
 
     let mut block_write = block.clone();
     let writer_thread = thread::spawn(move || loop {
-        let stream = block_write.get_output().unwrap();
+        let stream = &block_write.get_output()[0];
         let n_read = stream.read().unwrap();
         let buf = stream.buf_read.lock().unwrap();
 
@@ -28,7 +28,7 @@ fn main() {
 
     let mut block_read = block.clone();
     let reader_thread = thread::spawn(move || loop {
-        let stream = block_read.get_input().unwrap();
+        let stream = &block_read.get_input()[0];
         let mut buf = stream.buf_write.lock().unwrap();
 
         let n_read = buf.len();
@@ -36,8 +36,8 @@ fn main() {
             Ok(()) => {}
             Err(e) => {
                 block_read.stop();
-                block_read.get_input().unwrap().stop_writer();
-                block_read.get_output().unwrap().stop_reader();
+                block_read.get_input()[0].stop_writer();
+                block_read.get_output()[0].stop_reader();
                 return;
             }
         }
