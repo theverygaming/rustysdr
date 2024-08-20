@@ -1,3 +1,4 @@
+use dsp::libwav::WavReaderTrait;
 use std::fs::File;
 use volk_rs::{self, vec::AlignedVec};
 
@@ -24,13 +25,13 @@ fn wav_works() {
         c += i;
     }
 
-    fn test_samp_format(mut readbuf: &mut [f32], testsamps: &AlignedVec<f32>, format: dsp::wav::WavSampleFormat) {
+    fn test_samp_format(mut readbuf: &mut [f32], testsamps: &AlignedVec<f32>, format: dsp::libwav::WavSampleFormat) {
         let sr = 48000;
         let channels = 1;
-        let mut wav_w = dsp::wav::Writer::new(File::create(std::env::temp_dir().join("wav-works.wav")).unwrap(), sr, channels, format).expect("couldn't open wav");
+        let mut wav_w = dsp::libwav::Writer::new(File::create(std::env::temp_dir().join("wav-works.wav")).unwrap(), sr, channels, format).expect("couldn't open wav");
         wav_w.write_samples(&testsamps).unwrap();
         wav_w.flush().unwrap();
-        let mut wav_r = dsp::wav::Reader::new(File::open(std::env::temp_dir().join("wav-works.wav")).unwrap(), true).expect("couldn't open wav");
+        let mut wav_r = dsp::libwav::Reader::new(File::open(std::env::temp_dir().join("wav-works.wav")).unwrap(), true).expect("couldn't open wav");
 
         assert!(format == wav_r.get_sample_format(), "WAV format mismatch");
         assert!(sr == wav_r.get_samplerate(), "WAV samplerate mismatch");
@@ -49,9 +50,9 @@ fn wav_works() {
         }
     }
 
-    test_samp_format(&mut readbuf, &testsamps, dsp::wav::WavSampleFormat::U8);
-    test_samp_format(&mut readbuf, &testsamps, dsp::wav::WavSampleFormat::S16);
-    test_samp_format(&mut readbuf, &testsamps, dsp::wav::WavSampleFormat::S32);
-    test_samp_format(&mut readbuf, &testsamps, dsp::wav::WavSampleFormat::F32);
-    test_samp_format(&mut readbuf, &testsamps, dsp::wav::WavSampleFormat::F64);
+    test_samp_format(&mut readbuf, &testsamps, dsp::libwav::WavSampleFormat::U8);
+    test_samp_format(&mut readbuf, &testsamps, dsp::libwav::WavSampleFormat::S16);
+    test_samp_format(&mut readbuf, &testsamps, dsp::libwav::WavSampleFormat::S32);
+    test_samp_format(&mut readbuf, &testsamps, dsp::libwav::WavSampleFormat::F32);
+    test_samp_format(&mut readbuf, &testsamps, dsp::libwav::WavSampleFormat::F64);
 }

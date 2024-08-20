@@ -28,11 +28,54 @@ pub trait Block<TIn, TOut> {
 }
 
 #[macro_export]
-macro_rules! impl_block{
-    ($blockname:ident, $traitname:ident, $($body:item),* $(,)?)=>{
+macro_rules! impl_block_methods {
+    () => {
+        fn start(&mut self) {
+            for s in self.get_input() {
+                s.start_reader();
+            }
+            for s in self.get_output() {
+                s.start_writer();
+            }
+            let clone = self.clone();
+            *self.thread_handle.lock().unwrap() = Some(thread::spawn(move || loop {
+                if !clone.run() {
+                    break;
+                }
+            }));
+        }
+
+        fn stop(&mut self) {
+            for s in self.get_input() {
+                s.stop_reader();
+            }
+            for s in self.get_output() {
+                s.stop_writer();
+            }
+            self.thread_handle
+                .lock()
+                .unwrap()
+                .take()
+                .expect("thread must be running to be stopped")
+                .join()
+                .expect("worker thread panic");
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_block_trait {
+    ($traitname:ident) => {
         trait $traitname {
             fn run(&self) -> bool;
         }
+    };
+}
+
+#[macro_export]
+macro_rules! impl_block{
+    ($blockname:ident, $traitname:ident, $($body:item),* $(,)?)=>{
+        $crate::impl_block_trait!($traitname);
 
         impl<T: 'static> Block<T, T> for Arc<$blockname<T>>
         where
@@ -41,32 +84,7 @@ macro_rules! impl_block{
         {
             $($body)*
 
-            fn start(&mut self) {
-                for s in self.get_input() {
-                    s.start_reader();
-                }
-                for s in self.get_output() {
-                    s.start_writer();
-                }
-                let clone = self.clone();
-                *self.thread_handle.lock().unwrap() = Some(thread::spawn(move || {
-                    loop {
-                        if !clone.run() {
-                            break;
-                        }
-                    }
-                }));
-            }
-
-            fn stop(&mut self) {
-                for s in self.get_input() {
-                    s.stop_reader();
-                }
-                for s in self.get_output() {
-                    s.stop_writer();
-                }
-                self.thread_handle.lock().unwrap().take().expect("thread must be running to be stopped").join().expect("worker thread panic");
-            }
+            $crate::impl_block_methods!();
         }
-    }
+    };
 }

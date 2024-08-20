@@ -5,6 +5,7 @@ use dsp::filters;
 use dsp::fir::FirFilter;
 use dsp::fm_cochannel::FMCochannelCancel;
 use dsp::fmnr::FMNr;
+use dsp::libwav::WavReaderTrait;
 use dsp::mix::Mixer;
 use dsp::resamp::RationalResampler;
 use dsp::volk_rs::{vec::AlignedVec, Complex};
@@ -16,9 +17,9 @@ fn main() {
     let f_out_path = std::env::args().nth(2).expect("missing output file arg");
     let fft_size = std::env::args().nth(3).expect("missing fft size arg").parse::<usize>().unwrap();
 
-    let mut reader = dsp::wav::Reader::new(File::open(f_in_path).unwrap(), false).unwrap();
-    let mut writer = dsp::wav::Writer::new(File::create(f_out_path).unwrap(), 1024000 / 40, reader.get_channels(), dsp::wav::WavSampleFormat::S16).unwrap();
-    let mut writer_real = dsp::wav::Writer::new(File::create("/tmp/out_real.wav").unwrap(), 1024000 / 40, 1, dsp::wav::WavSampleFormat::S16).unwrap();
+    let mut reader = dsp::libwav::Reader::new(File::open(f_in_path).unwrap(), false).unwrap();
+    let mut writer = dsp::libwav::Writer::new(File::create(f_out_path).unwrap(), 1024000 / 40, reader.get_channels(), dsp::libwav::WavSampleFormat::S16).unwrap();
+    let mut writer_real = dsp::libwav::Writer::new(File::create("/tmp/out_real.wav").unwrap(), 1024000 / 40, 1, dsp::libwav::WavSampleFormat::S16).unwrap();
 
     let buf_len: usize = 1048576;
 

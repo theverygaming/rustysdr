@@ -6,6 +6,7 @@ pub mod filters;
 pub mod fir;
 pub mod fm_cochannel;
 pub mod fmnr;
+pub mod libwav;
 pub mod mix;
 pub mod resamp;
 pub mod stream;

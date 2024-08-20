@@ -1,12 +1,13 @@
+use dsp::libwav::WavReaderTrait;
 use dsp::volk_rs::{vec::AlignedVec, Complex};
 use std::fs::File;
 
 fn main() {
     let refcount_reader = std::sync::Arc::new(std::sync::Mutex::new(
-        dsp::wav::Reader::new(File::open("/home/user/Downloads/rustysdr/doom.wav").unwrap(), true).unwrap(),
+        dsp::libwav::Reader::new(File::open("/home/user/Downloads/rustysdr/doom.wav").unwrap(), true).unwrap(),
     ));
-    //let reader = dsp::wav::Reader::new(File::open(std::env::temp_dir().join("/home/user/Downloads/rustysdr/doom.wav")).unwrap(), true).unwrap();
-    //let mut writer = dsp::wav::Writer::new(File::create(std::env::temp_dir().join("/home/user/Downloads/rustysdr/out.wav")).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
+    //let reader = dsp::libwav::Reader::new(File::open(std::env::temp_dir().join("/home/user/Downloads/rustysdr/doom.wav")).unwrap(), true).unwrap();
+    //let mut writer = dsp::libwav::Writer::new(File::create(std::env::temp_dir().join("/home/user/Downloads/rustysdr/out.wav")).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
 
     //let mut buffer: AlignedVec<complex<f32>> = AlignedVec::from_elem(complex { r: 0.0, i: 0.0 }, 1000);
 
