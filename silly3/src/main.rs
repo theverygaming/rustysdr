@@ -15,15 +15,13 @@ fn main() {
     let mut writer = dsp::libwav::Writer::new(File::create("/tmp/out.wav").unwrap(), reader.get_samplerate(), 1, dsp::libwav::WavSampleFormat::S16).unwrap();
 
     let mut block_read = WavReaderBlock::<f32, dsp::libwav::Reader<std::fs::File>>::new(1024, reader);
-    let mut block_proc = DcBlock::<f32>::new(1024);
+    let mut block_proc = DcBlock::<f32>::new(1024, block_read.get_output().remove(0));
 
     let mut block_write = block_proc.clone();
     let writer_thread = thread::spawn(move || loop {
         let stream = &block_write.get_output()[0];
         let n_read = stream.read().unwrap();
         let buf = stream.buf_read.lock().unwrap();
-
-        println!("write");
 
         writer.write_samples(&buf[0..n_read]).unwrap();
         writer.flush().unwrap();

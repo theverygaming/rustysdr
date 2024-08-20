@@ -15,11 +15,11 @@ pub struct DcBlock<T> {
 }
 
 impl DcBlock<f32> {
-    pub fn new(stream_size: usize) -> Arc<Self> {
+    pub fn new(stream_size: usize, input: Arc<Stream<f32>>) -> Arc<Self> {
         Arc::new(DcBlock {
             offset: Mutex::new(0.0),
             rate: Mutex::new(0.0001),
-            input: Stream::new(stream_size),
+            input: input,
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
         })
@@ -27,11 +27,11 @@ impl DcBlock<f32> {
 }
 
 impl DcBlock<Complex<f32>> {
-    pub fn new(stream_size: usize) -> Arc<Self> {
+    pub fn new(stream_size: usize, input: Arc<Stream<Complex<f32>>>) -> Arc<Self> {
         Arc::new(DcBlock {
             offset: Mutex::new(Complex { re: 0.0, im: 0.0 }),
             rate: Mutex::new(0.01),
-            input: Stream::new(stream_size),
+            input: input,
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
         })
