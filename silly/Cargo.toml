@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tungstenite = "0.21.0"
+tungstenite = "0.28.0"
 
 [dependencies.dsp]
 path = '../dsp'
