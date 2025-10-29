@@ -4,7 +4,11 @@ use std::fs::File;
 
 fn main() {
     let refcount_reader = std::sync::Arc::new(std::sync::Mutex::new(
-        dsp::libwav::Reader::new(File::open("/home/user/Downloads/thebestfuckingmicrophone.wav").unwrap(), true).unwrap(),
+        dsp::libwav::Reader::new(File::open(
+            "/home/user/.config/sdrpp/recordings/baseband_0Hz_08-54-41_24-12-2024.wav"
+            //"/home/user/.config/sdrpp/recordings/SAQ_2024-12-24.wav"
+            //"/home/user/Downloads/sample.wav"
+        ).unwrap(), true).unwrap(),
     ));
     //let reader = dsp::libwav::Reader::new(File::open(std::env::temp_dir().join("/home/user/Downloads/rustysdr/doom.wav")).unwrap(), true).unwrap();
     //let mut writer = dsp::libwav::Writer::new(File::create(std::env::temp_dir().join("/home/user/Downloads/rustysdr/out.wav")).unwrap(), reader.get_samplerate(), reader.get_channels(), reader.get_sample_format()).unwrap();
@@ -39,9 +43,13 @@ fn main() {
                     let slice = std::slice::from_raw_parts(buffer.as_ptr() as *const u8, buffer.len() * std::mem::size_of::<f32>());
                     tungstenite::Bytes::copy_from_slice(slice)
                 };
-                websocket.send(tungstenite::Message::Text(counter.to_string().into()));
+                websocket.send(tungstenite::Message::Text(counter.to_string().into())).unwrap();
                 counter += 1;
-                websocket.send(tungstenite::Message::Binary(audiobytes));
+
+                let mut send_bytes = Vec::with_capacity(1 + audiobytes.len());
+                send_bytes.push(0x1u8); // type byte
+                send_bytes.extend_from_slice(audiobytes.as_ref());
+                websocket.send(tungstenite::Message::Binary(send_bytes.into())).unwrap();
             }
         });
     }
