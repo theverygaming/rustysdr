@@ -32,7 +32,7 @@ macro_rules! impl_block_methods {
     () => {
         fn start(&mut self) {
             for s in self.get_input() {
-                s.start_reader();
+                *self.reader_id.lock().unwrap() = s.start_reader();
             }
             for s in self.get_output() {
                 s.start_writer();
@@ -47,7 +47,7 @@ macro_rules! impl_block_methods {
 
         fn stop(&mut self) {
             for s in self.get_input() {
-                s.stop_reader();
+                s.stop_reader(*self.reader_id.lock().unwrap());
             }
             for s in self.get_output() {
                 s.stop_writer();

@@ -10,6 +10,7 @@ pub struct WavReaderBlock<T, R: WavReaderTrait> {
     wav_reader: Mutex<R>,
     output: Arc<Stream<T>>,
     thread_handle: Mutex<Option<thread::JoinHandle<()>>>,
+    reader_id: Mutex<usize>,
 }
 
 impl<R: WavReaderTrait> WavReaderBlock<f32, R> {
@@ -21,6 +22,7 @@ impl<R: WavReaderTrait> WavReaderBlock<f32, R> {
             wav_reader: Mutex::new(wav_reader),
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
+            reader_id: Mutex::new(0),
         })
     }
 }
@@ -34,6 +36,7 @@ impl<R: WavReaderTrait> WavReaderBlock<Complex<f32>, R> {
             wav_reader: Mutex::new(wav_reader),
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
+            reader_id: Mutex::new(0),
         })
     }
 }

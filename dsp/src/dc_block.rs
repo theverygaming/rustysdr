@@ -12,6 +12,7 @@ pub struct DcBlock<T> {
     input: Arc<Stream<T>>,
     output: Arc<Stream<T>>,
     thread_handle: Mutex<Option<thread::JoinHandle<()>>>,
+    reader_id: Mutex<usize>,
 }
 
 impl DcBlock<f32> {
@@ -22,6 +23,7 @@ impl DcBlock<f32> {
             input: input,
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
+            reader_id: Mutex::new(0),
         })
     }
 }
@@ -34,6 +36,7 @@ impl DcBlock<Complex<f32>> {
             input: input,
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
+            reader_id: Mutex::new(0),
         })
     }
 }
@@ -51,13 +54,14 @@ crate::impl_block!(
 
 impl DcBlockImpl for DcBlock<f32> {
     fn run(&self) -> bool {
-        let n_read = match self.input.read() {
+        let reader_id = self.reader_id.lock().unwrap();
+        let n_read = match self.input.read(*reader_id) {
             Some(x) => x,
             None => {
                 return false;
             }
         };
-        let buf_r = self.input.buf_read.lock().unwrap();
+        let buf_r = self.input.buf_read.read().unwrap();
         let mut buf_w = self.output.buf_write.lock().unwrap();
 
         let mut offset = self.offset.lock().unwrap();
@@ -71,20 +75,21 @@ impl DcBlockImpl for DcBlock<f32> {
         if !self.output.swap(n_read) {
             return false;
         }
-        self.input.flush();
+        self.input.flush(*reader_id);
         true
     }
 }
 
 impl DcBlockImpl for DcBlock<Complex<f32>> {
     fn run(&self) -> bool {
-        let n_read = match self.input.read() {
+        let reader_id = self.reader_id.lock().unwrap();
+        let n_read = match self.input.read(*reader_id) {
             Some(x) => x,
             None => {
                 return false;
             }
         };
-        let buf_r = self.input.buf_read.lock().unwrap();
+        let buf_r = self.input.buf_read.read().unwrap();
         let mut buf_w = self.output.buf_write.lock().unwrap();
 
         let mut offset = self.offset.lock().unwrap();
@@ -98,7 +103,7 @@ impl DcBlockImpl for DcBlock<Complex<f32>> {
         if !self.output.swap(n_read) {
             return false;
         }
-        self.input.flush();
+        self.input.flush(*reader_id);
         true
     }
 }

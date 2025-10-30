@@ -19,14 +19,16 @@ fn main() {
 
     let mut block_write = block_proc.clone();
     let writer_thread = thread::spawn(move || loop {
+        // FIXME: lmao don't generate N reader ids
         let stream = &block_write.get_output()[0];
-        let n_read = stream.read().unwrap();
-        let buf = stream.buf_read.lock().unwrap();
+        let reader_id = stream.start_reader();
+        let n_read = stream.read(reader_id).unwrap();
+        let buf = stream.buf_read.read().unwrap();
 
         writer.write_samples(&buf[0..n_read]).unwrap();
         writer.flush().unwrap();
 
-        stream.flush();
+        stream.flush(reader_id);
     });
 
     block_read.start();
