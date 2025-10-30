@@ -25,7 +25,7 @@ impl FirFilter {
 }
 
 impl DspBlock<Complex<f32>> for FirFilter {
-    fn process(&mut self, input: &mut [Complex<f32>], output: &mut [Complex<f32>]) {
+    fn process(&mut self, input: &[Complex<f32>], output: &mut [Complex<f32>]) {
         let n_taps = self.taps.len();
         self.delay_buf[n_taps..n_taps + self.block_size].copy_from_slice(input);
 

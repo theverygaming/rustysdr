@@ -68,7 +68,7 @@ impl RationalResampler {
 }
 
 impl DspBlock<Complex<f32>> for RationalResampler {
-    fn process(&mut self, input: &mut [Complex<f32>], output: &mut [Complex<f32>]) {
+    fn process(&mut self, input: &[Complex<f32>], output: &mut [Complex<f32>]) {
         assert!(input.len() == self.block_size);
         assert!(output.len() == self.compute_output_size(input.len()), "incorrect output size");
         let mut out_idx = 0;

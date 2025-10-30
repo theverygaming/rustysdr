@@ -42,7 +42,7 @@ impl FMCochannelCancel {
 }
 
 impl DspBlock<Complex<f32>> for FMCochannelCancel {
-    fn process(&mut self, input: &mut [Complex<f32>], output: &mut [Complex<f32>]) {
+    fn process(&mut self, input: &[Complex<f32>], output: &mut [Complex<f32>]) {
         assert!(input.len() == self.block_size);
         self.delay_buf[self.fft_size..self.fft_size + self.block_size].copy_from_slice(input);
         for i in 0..output.len() {

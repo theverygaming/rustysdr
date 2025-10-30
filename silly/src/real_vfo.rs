@@ -31,7 +31,7 @@ impl RealVFO {
 }
 
 impl DspBlockConv<Complex<f32>, f32> for RealVFO {
-    fn process(&mut self, input: &mut [Complex<f32>], output: &mut [f32]) {
+    fn process(&mut self, input: &[Complex<f32>], output: &mut [f32]) {
         self.chain.process(input, &mut self.buffer);
         self.demod.process(&mut self.buffer, output);
     }

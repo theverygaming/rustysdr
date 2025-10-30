@@ -23,7 +23,7 @@ impl<T: Clone> DspChain<T> {
 }
 
 impl<T: Clone> DspBlock<T> for DspChain<T> {
-    fn process(&mut self, input: &mut [T], output: &mut [T]) {
+    fn process(&mut self, input: &[T], output: &mut [T]) {
         let mut buf_in = &mut self.buffer1;
         let mut buf_out = &mut self.buffer2;
         buf_in[0..input.len()].clone_from_slice(input);

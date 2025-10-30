@@ -2,13 +2,13 @@ use crate::stream::Stream;
 use std::sync::Arc;
 
 pub trait DspBlock<T> {
-    fn process(&mut self, input: &mut [T], output: &mut [T]);
+    fn process(&mut self, input: &[T], output: &mut [T]);
     fn compute_output_size(&mut self, input_size: usize) -> usize;
     fn set_input_size(&mut self, input_size: usize);
 }
 
 pub trait DspBlockConv<Tin, Tout> {
-    fn process(&mut self, input: &mut [Tin], output: &mut [Tout]);
+    fn process(&mut self, input: &[Tin], output: &mut [Tout]);
     fn compute_output_size(&mut self, input_size: usize) -> usize;
     fn set_input_size(&mut self, input_size: usize);
 }

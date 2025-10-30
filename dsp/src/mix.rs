@@ -30,7 +30,7 @@ impl Mixer {
 }
 
 impl DspBlock<Complex<f32>> for Mixer {
-    fn process(&mut self, input: &mut [Complex<f32>], output: &mut [Complex<f32>]) {
+    fn process(&mut self, input: &[Complex<f32>], output: &mut [Complex<f32>]) {
         volk_rs::kernels::volk_32fc_s32fc_x2_rotator2_32fc(input, output, &self.phase_inc, &mut self.phase);
     }
 
