@@ -9,14 +9,15 @@ pub struct Mixer {
 
 impl Mixer {
     pub fn new(lofreq: f64, samplerate: f64) -> Self {
-        let phase: f64 = (2.0 * std::f64::consts::PI) * (lofreq / samplerate);
-        Mixer {
+        let mut mx = Mixer {
             phase_inc: Complex {
-                re: phase.cos() as f32,
-                im: phase.sin() as f32,
+                re: 0.0,
+                im: 0.0,
             },
             phase: Complex { re: 1.0, im: 0.0 },
-        }
+        };
+        mx.set(lofreq, samplerate);
+        mx
     }
 
     pub fn set(&mut self, lofreq: f64, samplerate: f64) {
