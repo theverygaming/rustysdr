@@ -10,6 +10,7 @@ use std::{boxed::Box};
 pub struct RealVFO {
     pub demod: Box<dyn DspBlockConv<Complex<f32>, f32>>,
     chain: DspChain<Complex<f32>>,
+    buffer: AlignedVec<Complex<f32>>,
 }
 
 impl RealVFO {
@@ -20,6 +21,7 @@ impl RealVFO {
         RealVFO {
             demod: demod,
             chain: chain,
+            buffer: AlignedVec::new_zeroed(1048576),
         }
     }
 
@@ -30,18 +32,19 @@ impl RealVFO {
 
 impl DspBlockConv<Complex<f32>, f32> for RealVFO {
     fn process(&mut self, input: &mut [Complex<f32>], output: &mut [f32]) {
-        // self.chain.process(input, output);
-        // TODO: demod
+        self.chain.process(input, &mut self.buffer);
+        self.demod.process(&mut self.buffer, output);
     }
 
     fn compute_output_size(&mut self, input_size: usize) -> usize {
         let chain_output_size = self.chain.compute_output_size(input_size);
-        self.demod.compute_output_size(input_size)
+        return self.demod.compute_output_size(chain_output_size);
     }
 
     fn set_input_size(&mut self, input_size: usize) {
         let chain_output_size = self.chain.compute_output_size(input_size);
         self.chain.set_input_size(input_size);
         self.demod.set_input_size(chain_output_size);
+        self.buffer = AlignedVec::new_zeroed(chain_output_size);
     }
 }
