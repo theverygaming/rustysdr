@@ -22,4 +22,10 @@ impl DspBlockConv<Complex<f32>, f32> for AmDemod {
         volk_rs::kernels::volk_32fc_magnitude_32f(&mut tmp, input);
         //self.dc_block.process(&mut tmp, output);
     }
+
+    fn compute_output_size(&mut self, input_size: usize) -> usize {
+        input_size
+    }
+
+    fn set_input_size(&mut self, input_size: usize) {}
 }

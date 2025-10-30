@@ -9,6 +9,8 @@ pub trait DspBlock<T> {
 
 pub trait DspBlockConv<Tin, Tout> {
     fn process(&mut self, input: &mut [Tin], output: &mut [Tout]);
+    fn compute_output_size(&mut self, input_size: usize) -> usize;
+    fn set_input_size(&mut self, input_size: usize);
 }
 
 pub trait DspSource<T> {
