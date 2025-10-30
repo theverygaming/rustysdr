@@ -18,9 +18,11 @@ impl AmDemod {
 
 impl DspBlockConv<Complex<f32>, f32> for AmDemod {
     fn process(&mut self, input: &mut [Complex<f32>], output: &mut [f32]) {
-        let mut tmp = AlignedVec::new_zeroed(output.len());
-        volk_rs::kernels::volk_32fc_magnitude_32f(&mut tmp, input);
+        //let mut tmp = AlignedVec::new_zeroed(output.len());
+        //volk_rs::kernels::volk_32fc_magnitude_32f(&mut tmp, input);
         //self.dc_block.process(&mut tmp, output);
+
+        volk_rs::kernels::volk_32fc_magnitude_32f(output, input);
     }
 
     fn compute_output_size(&mut self, input_size: usize) -> usize {
