@@ -16,7 +16,7 @@ pub struct RealVFO {
 impl RealVFO {
     pub fn new(demod: Box<dyn DspBlockConv<Complex<f32>, f32>>) -> Self {
         let mut chain = DspChain::new();
-        chain.add_block(Box::new(Mixer::new(-305000.0, 1024000 as f64)));
+        chain.add_block(Box::new(Mixer::new(-0.2545, 1 as f64)));
         chain.add_block(Box::new(RationalResampler::new(1, 40)));
         RealVFO {
             demod: demod,

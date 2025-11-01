@@ -1,19 +1,21 @@
-use dsp::volk_rs::{vec::AlignedVec, Complex};
+use dsp::stream::Stream;
+use std::sync::{Arc};
 
 pub struct WSClient {
     ws: tungstenite::protocol::WebSocket<std::net::TcpStream>,
-    audio_buffer: AlignedVec<f32>,
+    stream: Arc<Stream::<f32>>,
 }
 
 impl WSClient {
-    pub fn new(ws: tungstenite::protocol::WebSocket<std::net::TcpStream>) -> Self {
+    pub fn new(ws: tungstenite::protocol::WebSocket<std::net::TcpStream>, stream: Arc<Stream::<f32>>) -> Self {
         WSClient {
             ws: ws,
-            audio_buffer: AlignedVec::from_elem(0.0, 4800),
+            stream: stream,
         }
     }
 
     pub fn serve(&mut self) {
+        let reader_id = self.stream.start_reader();
         loop {
             let msg = match self.ws.read() {
                 Ok(v) => v,
@@ -27,11 +29,13 @@ impl WSClient {
             //if msg.is_binary() || msg.is_text() {
             //    self.ws.send(msg).unwrap();
             //}
-            //reader_clone.lock().unwrap().read_samples(&mut self.audio_buffer).unwrap();
+            let n_read = self.stream.read(reader_id).expect("reader should not stop lmao");
+            let audio_buffer = self.stream.buf_read.read().unwrap();
             let audiobytes = unsafe {
-                let slice = std::slice::from_raw_parts(self.audio_buffer.as_ptr() as *const u8, self.audio_buffer.len() * std::mem::size_of::<f32>());
+                let slice = std::slice::from_raw_parts(audio_buffer.as_ptr() as *const u8, n_read * std::mem::size_of::<f32>());
                 tungstenite::Bytes::copy_from_slice(slice)
             };
+            self.stream.flush(reader_id);
 
             let mut send_bytes = Vec::with_capacity(1 + audiobytes.len());
             send_bytes.push(0x1u8); // type byte

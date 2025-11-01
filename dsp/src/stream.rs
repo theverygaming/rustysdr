@@ -35,6 +35,12 @@ impl<T> Stream<T> {
         })
     }
 
+    pub fn ready_to_swap(self: &Arc<Self>) -> bool {
+        let mut readers_read = self.readers_read.lock().unwrap();
+        let mut readers_total = self.readers_total.lock().unwrap();
+        return *readers_read >= *readers_total;
+    }
+
     // swaps the read & write buffers, called after write is done
     // returns false if the writer has been stopped
     pub fn swap(self: &Arc<Self>, n: usize) -> bool {
