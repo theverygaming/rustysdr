@@ -82,7 +82,7 @@ macro_rules! impl_block{
         impl<T: 'static> Block<T, T> for Arc<$blockname<T>>
         where
             $blockname<T>: $traitname,
-            T: Send,
+            T: Send + Sync,
         {
             $($body)*
 

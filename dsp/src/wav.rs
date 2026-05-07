@@ -46,7 +46,7 @@ crate::impl_block_trait!(WavReaderBlockImpl);
 impl<T: 'static, R: WavReaderTrait + Send + 'static> Block<T, T> for Arc<WavReaderBlock<T, R>>
 where
     WavReaderBlock<T, R>: WavReaderBlockImpl,
-    T: Send,
+    T: Send + Sync,
 {
     fn get_input(&mut self) -> Vec<Arc<Stream<T>>> {
         vec![]
