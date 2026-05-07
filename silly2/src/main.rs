@@ -30,8 +30,7 @@ fn main() {
     chain.add_block(Box::new(RationalResampler::new(1, 40)));
     let mut taps = AlignedVec::new_zeroed(127);
     dsp::filters::lowpass(&mut taps, (1024000 / 40) as f32, 5000.0, 1.0);
-    let mut fir = Box::new(FirFilter::new());
-    fir.set_taps(taps);
+    let mut fir = Box::new(FirFilter::new(taps, 10000));
     chain.add_block(fir);
     //chain.add_block(Box::new(FMCochannelCancel::new(fft_size, 2)));
     //chain.add_block(Box::new(FMNr::new(fft_size)));
