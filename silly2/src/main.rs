@@ -3,8 +3,6 @@ use dsp::block::{DspBlock, DspBlockConv};
 use dsp::chain::DspChain;
 use dsp::filters;
 use dsp::fir::FirFilter;
-use dsp::fm_cochannel::FMCochannelCancel;
-use dsp::fmnr::FMNr;
 use dsp::libwav::WavReaderTrait;
 use dsp::mix::Mixer;
 use dsp::resamp::RationalResampler;
@@ -32,10 +30,7 @@ fn main() {
     dsp::filters::lowpass(&mut taps, (1024000 / 40) as f32, 5000.0, 1.0);
     let mut fir = Box::new(FirFilter::new(taps, 10000));
     chain.add_block(fir);
-    //chain.add_block(Box::new(FMCochannelCancel::new(fft_size, 2)));
-    //chain.add_block(Box::new(FMNr::new(fft_size)));
     //chain.add_block(Box::new(RationalResampler::new(1, 256)));
-    //chain.add_block(Box::new(FMCochannelCancel::new(fft_size, 8, buf_len)));
     //chain.add_block(Box::new(RationalResampler::new(1, 2, buf_len)));
 
     chain.set_input_size(buf_len);
