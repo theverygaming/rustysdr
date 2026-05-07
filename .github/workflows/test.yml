@@ -4,7 +4,7 @@ jobs:
   build_and_test_linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
         run: sudo apt-get install -y libvolk-dev libfftw3-dev
@@ -16,11 +16,11 @@ jobs:
   build_and_test_windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - name: cache volk
         id: cache-volk
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{runner.workspace}}/volk-3.1.2
           key: ${{ runner.os }}-volk-3.1.2
