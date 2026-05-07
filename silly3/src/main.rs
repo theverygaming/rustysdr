@@ -1,5 +1,5 @@
 use dsp::block::Block;
-use dsp::dc_block::DcBlock;
+use dsp::dc_block::DcBlock2;
 use dsp::libwav::WavReaderTrait;
 use dsp::stream::Stream;
 use dsp::volk_rs::{vec::AlignedVec, Complex};
@@ -15,7 +15,7 @@ fn main() {
     let mut writer = dsp::libwav::Writer::new(File::create("/tmp/out.wav").unwrap(), reader.get_samplerate(), 1, dsp::libwav::WavSampleFormat::S16).unwrap();
 
     let mut block_read = WavReaderBlock::<f32, dsp::libwav::Reader<std::fs::File>>::new(1024, reader);
-    let mut block_proc = DcBlock::<f32>::new(1024, block_read.get_output().remove(0));
+    let mut block_proc = DcBlock2::<f32>::new(1024, block_read.get_output().remove(0));
 
     let mut block_write = block_proc.clone();
     let writer_thread = thread::spawn(move || loop {

@@ -7,19 +7,60 @@ use volk_rs::Complex;
 // https://github.com/AlexandreRouma/SDRPlusPlus/blob/e1c48e9a1f6eca5b7c0a9cc8e0029181ac6c5f2d/core/src/dsp/correction/dc_blocker.h#L4
 
 pub struct DcBlock<T> {
-    offset: Mutex<T>,
-    rate: Mutex<f32>,
+    offset: T,
+    adj_rate: T,
+}
+
+impl<T: Copy + std::ops::Mul<Output = T> + std::ops::SubAssign + std::ops::AddAssign> DcBlock<T> {
+    fn process_sample(&mut self, mut sample: T) -> T {
+        sample -= self.offset;
+        self.offset += sample * self.adj_rate;
+        return sample;
+    }
+
+    pub fn process(&mut self, input: &[T], output: &mut [T]) {
+        for i in 0..input.len() {
+            output[i] = self.process_sample(input[i]);
+        }
+    }
+
+    pub fn process_in_place(&mut self, data: &mut [T]) {
+        for i in 0..data.len() {
+            data[i] = self.process_sample(data[i]);
+        }
+    }
+}
+
+impl DcBlock<f32> {
+    pub fn new(adj_rate: f32) -> Self {
+        DcBlock {
+            offset: 0.0,
+            adj_rate: adj_rate,
+        }
+    }
+}
+
+impl DcBlock<Complex<f32>> {
+    pub fn new(adj_rate: f32) -> Self {
+        DcBlock {
+            offset: Complex { re: 0.0, im: 0.0 },
+            adj_rate: Complex { re: adj_rate, im: adj_rate },
+        }
+    }
+}
+
+pub struct DcBlock2<T> {
+    dc_block: Mutex<DcBlock<T>>,
     input: Arc<Stream<T>>,
     output: Arc<Stream<T>>,
     thread_handle: Mutex<Option<thread::JoinHandle<()>>>,
     reader_id: Mutex<usize>,
 }
 
-impl DcBlock<f32> {
+impl DcBlock2<f32> {
     pub fn new(stream_size: usize, input: Arc<Stream<f32>>) -> Arc<Self> {
-        Arc::new(DcBlock {
-            offset: Mutex::new(0.0),
-            rate: Mutex::new(0.0001),
+        Arc::new(DcBlock2 {
+            dc_block: Mutex::new(DcBlock::<f32>::new(0.0001)),
             input: input,
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
@@ -28,11 +69,10 @@ impl DcBlock<f32> {
     }
 }
 
-impl DcBlock<Complex<f32>> {
+impl DcBlock2<Complex<f32>> {
     pub fn new(stream_size: usize, input: Arc<Stream<Complex<f32>>>) -> Arc<Self> {
-        Arc::new(DcBlock {
-            offset: Mutex::new(Complex { re: 0.0, im: 0.0 }),
-            rate: Mutex::new(0.01),
+        Arc::new(DcBlock2 {
+            dc_block: Mutex::new(DcBlock::<Complex<f32>>::new(0.01)),
             input: input,
             output: Stream::new(stream_size),
             thread_handle: Mutex::new(None),
@@ -42,8 +82,8 @@ impl DcBlock<Complex<f32>> {
 }
 
 crate::impl_block!(
-    DcBlock,
-    DcBlockImpl,
+    DcBlock2,
+    DcBlock2Impl,
     fn get_input(&mut self) -> Vec<Arc<Stream<T>>> {
         vec![self.input.clone()]
     },
@@ -52,7 +92,7 @@ crate::impl_block!(
     }
 );
 
-impl DcBlockImpl for DcBlock<f32> {
+impl DcBlock2Impl for DcBlock2<f32> {
     fn run(&self) -> bool {
         let reader_id = self.reader_id.lock().unwrap();
         let n_read = match self.input.read(*reader_id) {
@@ -64,12 +104,8 @@ impl DcBlockImpl for DcBlock<f32> {
         let buf_r = self.input.buf_read.read().unwrap();
         let mut buf_w = self.output.buf_write.lock().unwrap();
 
-        let mut offset = self.offset.lock().unwrap();
-        let rate = self.rate.lock().unwrap();
-        for i in 0..n_read {
-            buf_w[i] = buf_r[i] - *offset;
-            *offset += buf_w[i] * *rate;
-        }
+        let mut dc_block = self.dc_block.lock().unwrap();
+        dc_block.process(&buf_r, &mut buf_w);
         drop(buf_w);
 
         if !self.output.swap(n_read) {
@@ -80,7 +116,7 @@ impl DcBlockImpl for DcBlock<f32> {
     }
 }
 
-impl DcBlockImpl for DcBlock<Complex<f32>> {
+impl DcBlock2Impl for DcBlock2<Complex<f32>> {
     fn run(&self) -> bool {
         let reader_id = self.reader_id.lock().unwrap();
         let n_read = match self.input.read(*reader_id) {
@@ -92,12 +128,8 @@ impl DcBlockImpl for DcBlock<Complex<f32>> {
         let buf_r = self.input.buf_read.read().unwrap();
         let mut buf_w = self.output.buf_write.lock().unwrap();
 
-        let mut offset = self.offset.lock().unwrap();
-        let rate = self.rate.lock().unwrap();
-        for i in 0..n_read {
-            buf_w[i] = buf_r[i] - *offset;
-            *offset += buf_w[i] * Complex { re: *rate, im: *rate };
-        }
+        let mut dc_block = self.dc_block.lock().unwrap();
+        dc_block.process(&buf_r, &mut buf_w);
         drop(buf_w);
 
         if !self.output.swap(n_read) {
