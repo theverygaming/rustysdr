@@ -45,13 +45,13 @@ impl DspBlock<Complex<f32>> for FMNr {
         assert!(input.len() == self.block_size);
         self.delay_buf[self.fft_size..self.fft_size + self.block_size].copy_from_slice(input);
         for i in 0..output.len() {
-            volk_rs::kernels::volk_32fc_32f_multiply_32fc(&self.delay_buf[i..i + self.fft_size], &mut self.fft_in_fwd, &self.fft_window);
+            volk_rs::kernels::volk_32fc_32f_multiply_32fc(&mut self.fft_in_fwd, &self.delay_buf[i..i + self.fft_size], &self.fft_window);
 
             self.fft_plan_fwd.c2c(&mut self.fft_in_fwd, &mut self.fft_out_fwd).unwrap();
 
             let mut peak_idx = 0;
             volk_rs::kernels::volk_32fc_magnitude_32f(&mut self.magnitude_buf, &self.fft_out_fwd);
-            volk_rs::kernels::volk_32f_index_max_32u(&self.magnitude_buf, &mut peak_idx);
+            volk_rs::kernels::volk_32f_index_max_32u(&mut peak_idx, &self.magnitude_buf);
 
             self.fft_in_bwd[peak_idx as usize] = self.fft_out_fwd[peak_idx as usize]; // TODO: breaks at fft size >= 256??? Multiplying here by a small vaue kinda fixes it??
 

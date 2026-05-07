@@ -30,7 +30,7 @@ impl DspBlock<Complex<f32>> for FirFilter {
         self.delay_buf[n_taps..n_taps + self.block_size].copy_from_slice(input);
 
         for i in 0..output.len() {
-            volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(&self.delay_buf[i..i + n_taps], &mut output[i], &self.taps);
+            volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(&mut output[i], &self.delay_buf[i..i + n_taps], &self.taps);
         }
 
         self.delay_buf.copy_within(self.block_size..n_taps + self.block_size, 0);

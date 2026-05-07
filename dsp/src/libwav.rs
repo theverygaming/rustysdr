@@ -252,7 +252,7 @@ impl<R: io::Read + io::Seek> WavReaderTrait for Reader<R> {
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
-                    volk_rs::kernels::volk_16i_s32f_convert_32f_u8(&self.buffer[0..leftover_bytes], &mut arr[must_read - leftover..(must_read - leftover) + read_samples], 32768.0);
+                    volk_rs::kernels::volk_16i_s32f_convert_32f_u8(&mut arr[must_read - leftover..(must_read - leftover) + read_samples], &self.buffer[0..leftover_bytes], 32768.0);
                 }
                 WavSampleFormat::S24 => {
                     let scalar = 1.0 / 8388608.0;
@@ -268,7 +268,7 @@ impl<R: io::Read + io::Seek> WavReaderTrait for Reader<R> {
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_32u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
-                    volk_rs::kernels::volk_32i_s32f_convert_32f_u8(&self.buffer[0..leftover_bytes], &mut arr[must_read - leftover..(must_read - leftover) + read_samples], 2147483648.0);
+                    volk_rs::kernels::volk_32i_s32f_convert_32f_u8(&mut arr[must_read - leftover..(must_read - leftover) + read_samples], &self.buffer[0..leftover_bytes], 2147483648.0);
                 }
                 WavSampleFormat::F32 => {
                     if cfg!(target_endian = "big") {
@@ -407,14 +407,14 @@ impl<W: io::Write + io::Seek> Writer<W> {
                     }
                 }
                 WavSampleFormat::S16 => {
-                    volk_rs::kernels::volk_32f_s32f_convert_16i_u8(&arr[must_write - leftover..(must_write - leftover) + write_samples], &mut self.buffer[0..leftover_bytes], 32767.0);
+                    volk_rs::kernels::volk_32f_s32f_convert_16i_u8(&mut self.buffer[0..leftover_bytes], &arr[must_write - leftover..(must_write - leftover) + write_samples], 32767.0);
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }
                 }
                 WavSampleFormat::S24 => return Err(io::Error::new(io::ErrorKind::Other, "WAV: cannot write S24")),
                 WavSampleFormat::S32 => {
-                    volk_rs::kernels::volk_32f_s32f_convert_32i_u8(&arr[must_write - leftover..(must_write - leftover) + write_samples], &mut self.buffer[0..leftover_bytes], 2147483647.0);
+                    volk_rs::kernels::volk_32f_s32f_convert_32i_u8(&mut self.buffer[0..leftover_bytes], &arr[must_write - leftover..(must_write - leftover) + write_samples], 2147483647.0);
                     if cfg!(target_endian = "big") {
                         volk_rs::kernels::volk_16u_byteswap_u8(&mut self.buffer[0..leftover_bytes]);
                     }

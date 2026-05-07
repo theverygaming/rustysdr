@@ -78,8 +78,8 @@ impl DspBlock<Complex<f32>> for RationalResampler {
         while self.offset < input.len() as u32 {
             // https://github.com/AlexandreRouma/SDRPlusPlus/blob/67520ea45e57b17e815655c71713779a638d648a/core/src/dsp/multirate/polyphase_resampler.h#L75
             volk_rs::kernels::volk_32fc_32f_dot_prod_32fc(
-                &self.delay_buf[(self.offset as usize)..(self.offset as usize) + n_taps],
                 &mut output[out_idx],
+                &self.delay_buf[(self.offset as usize)..(self.offset as usize) + n_taps],
                 &self.filters[self.phase as usize],
             );
             out_idx += 1;
