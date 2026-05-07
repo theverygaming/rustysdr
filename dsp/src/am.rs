@@ -1,8 +1,6 @@
 use crate::block::DspBlockConv;
-use volk_rs::vec::AlignedVec;
 use volk_rs::Complex;
 use crate::dc_block::DcBlock;
-use crate::block::DspBlock;
 
 pub struct AmDemod {
     dc_block: DcBlock::<f32>,
@@ -31,5 +29,5 @@ impl DspBlockConv<Complex<f32>, f32> for AmDemod {
         input_size
     }
 
-    fn set_input_size(&mut self, input_size: usize) {}
+    fn set_input_size(&mut self, _input_size: usize) {}
 }

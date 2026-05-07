@@ -1,7 +1,6 @@
 use crate::block::Block;
 use crate::libwav::WavReaderTrait;
 use crate::stream::Stream;
-use std::io;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use volk_rs::Complex;
@@ -67,7 +66,7 @@ impl<R: WavReaderTrait> WavReaderBlockImpl for WavReaderBlock<f32, R> {
 
         match reader.read_samples(&mut buf_w) {
             Ok(()) => {}
-            Err(e) => {
+            Err(_) => {
                 return false;
             }
         }
@@ -88,7 +87,7 @@ impl<R: WavReaderTrait> WavReaderBlockImpl for WavReaderBlock<Complex<f32>, R> {
 
         match reader.read_complex(&mut buf_w) {
             Ok(()) => {}
-            Err(e) => {
+            Err(_) => {
                 return false;
             }
         }

@@ -36,8 +36,8 @@ impl<T> Stream<T> {
     }
 
     pub fn ready_to_swap(self: &Arc<Self>) -> bool {
-        let mut readers_read = self.readers_read.lock().unwrap();
-        let mut readers_total = self.readers_total.lock().unwrap();
+        let readers_read = self.readers_read.lock().unwrap();
+        let readers_total = self.readers_total.lock().unwrap();
         return *readers_read >= *readers_total;
     }
 
