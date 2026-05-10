@@ -56,6 +56,7 @@ where
         self.delay_buf = AlignedVec::new_zeroed(self.taps.len() + block_size);
     }
 
+    // FIXME: this might be kinda broken
     pub fn process(&mut self, input: &[Tsamples], output: &mut [Tsamples]) {
         assert!(input.len() == output.len(), "mismatched lengths");
 

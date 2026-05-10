@@ -27,11 +27,15 @@ impl Mixer {
             im: phase.sin() as f32,
         };
     }
+
+    fn process(&mut self, input: &[Complex<f32>], output: &mut [Complex<f32>]) {
+        volk_rs::kernels::volk_32fc_s32fc_x2_rotator2_32fc(output, input, &self.phase_inc, &mut self.phase);
+    }
 }
 
 impl DspBlock<Complex<f32>> for Mixer {
     fn process(&mut self, input: &[Complex<f32>], output: &mut [Complex<f32>]) {
-        volk_rs::kernels::volk_32fc_s32fc_x2_rotator2_32fc(output, input, &self.phase_inc, &mut self.phase);
+        self.process(input, output);
     }
 
     fn compute_output_size(&mut self, input_size: usize) -> usize {
