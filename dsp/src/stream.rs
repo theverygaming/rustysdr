@@ -1,6 +1,8 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Condvar, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex, RwLock, MutexGuard, TryLockError};
 use volk_rs::vec::AlignedVec;
+use crate::buffer::CircularBuffer;
+use crate::error::DspError;
 
 struct ReaderState {
     done_reading: bool,
@@ -147,4 +149,162 @@ impl<T> Stream<T> {
         self.write_cv.notify_all();
         self.read_cv.notify_all();
     }
+}
+
+// the core idea behind these streams is from: https://github.com/ThomasHabets/rustradio/blob/3b29791b340470819eb23019f1153e6c1fd93107/src/stream.rs
+
+pub struct Stream2<T> {
+    buf: Mutex<CircularBuffer<T>>,
+    cv_read: Condvar,
+    cv_write: Condvar,
+}
+
+impl<T: Copy> Stream2<T> {
+    fn new(nbuf: usize) -> Stream2<T> {
+        Stream2 {
+            buf: Mutex::new(CircularBuffer::<T>::new(nbuf)),
+            cv_read: Condvar::new(),
+            cv_write: Condvar::new(),
+        }
+    }
+}
+
+
+pub struct ReadStream<T> {
+    stream: Arc<Stream2<T>>,
+}
+
+pub struct StreamReader<'a, T: Copy> {
+    stream: Arc<Stream2<T>>,
+    guard: MutexGuard<'a, CircularBuffer<T>>,
+    nread: usize,
+}
+
+impl<'a, T: Copy> StreamReader<'a, T> {
+    pub fn read(&self) -> (&[T], &[T]) {
+        self.guard.read(self.nread)
+    }
+
+    pub fn done(&mut self) {
+        if self.nread == 0 {
+            return;
+        }
+        self.guard.consume(self.nread).unwrap();
+        self.nread = 0;
+        self.stream.cv_write.notify_all();
+    }
+}
+
+
+pub struct StreamWriter<'a, T> {
+    stream: Arc<Stream2<T>>,
+    guard: MutexGuard<'a, CircularBuffer<T>>
+}
+
+impl<'a, T: Copy> StreamWriter<'a, T> {
+    pub fn write(&mut self, data: &[T]) -> Result<(), DspError> {
+        self.guard.write(data)
+    }
+
+    pub fn done(&mut self) {
+        self.stream.cv_read.notify_all();
+    }
+}
+
+
+impl<T: Copy> ReadStream<T> {
+    pub fn read_lock_try(&self, nmax: usize) -> Result<StreamReader<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
+        let guard = self.stream.buf.try_lock()?;
+        let n = if nmax != 0 { std::cmp::min((*guard).len(), nmax) } else { (*guard).len() };
+        Ok(StreamReader {
+            stream: self.stream.clone(),
+            guard: guard,
+            nread: n,
+        })
+    }
+
+    pub fn read_lock_wait(&self, nmin: usize, nmax: usize) -> StreamReader<'_, T> {
+        let mut guard = self.stream.buf.lock().unwrap();
+        assert!(nmin <= (*guard).capacity());
+        while (*guard).len() < nmin {
+            guard = self.stream.cv_read.wait(guard).unwrap();
+        }
+        let n = if nmax != 0 { std::cmp::min((*guard).len(), nmax) } else { (*guard).len() };
+        StreamReader {
+            stream: self.stream.clone(),
+            guard: guard,
+            nread: n,
+        }
+    }
+}
+
+pub struct WriteStream<T> {
+    stream: Arc<Stream2<T>>,
+}
+
+impl<T: Copy> WriteStream<T> {
+    pub fn new(nbuf: usize) -> (WriteStream<T>, ReadStream<T>) {
+        let stream = Arc::new(Stream2::<T>::new(nbuf));
+        (
+            WriteStream {
+                stream: stream.clone(),
+            },
+            ReadStream {
+                stream: stream.clone(),
+            },
+        )
+    }
+
+    pub fn write_lock_try(&self) -> Result<StreamWriter<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
+        let guard = self.stream.buf.try_lock()?;
+        Ok(StreamWriter {
+            stream: self.stream.clone(),
+            guard: guard,
+        })
+    }
+
+    pub fn write_lock_wait(&self, nmin: usize) -> StreamWriter<'_, T> {
+        let mut guard = self.stream.buf.lock().unwrap();
+        assert!(nmin <= (*guard).capacity());
+        while (*guard).available() < nmin {
+            guard = self.stream.cv_write.wait(guard).unwrap();
+        }
+        StreamWriter {
+            stream: self.stream.clone(),
+            guard: guard,
+        }
+    }
+}
+
+#[test]
+fn test_stream_small() {
+    let (sw, sr) = WriteStream::<i32>::new(10);
+
+    let t1 = std::thread::spawn(move || {
+        let mut n = 0;
+        while n < 500 {
+            let mut writer = sw.write_lock_wait(3);
+            writer.write(&[n, n + 1, n + 2]).unwrap();
+            n += 3;
+            writer.done();
+        }
+    });
+    let t2 = std::thread::spawn(move || {
+        let mut n = 0;
+        while n < 500 {
+            let mut reader = sr.read_lock_wait(1, 0);
+            let (a, b) = reader.read();
+            for x in a.iter() {
+                assert_eq!(*x, n);
+                n += 1;
+            }
+            for x in b.iter() {
+                assert_eq!(*x, n);
+                n += 1;
+            }
+            reader.done();
+        }
+    });
+    t1.join().unwrap();
+    t2.join().unwrap();
 }
