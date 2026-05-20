@@ -10,6 +10,8 @@ pub mod resamp;
 pub mod stream;
 pub mod wav;
 pub mod windows;
+pub mod buffer;
+pub mod error;
 
 // re-exports
 pub use volk_rs;
