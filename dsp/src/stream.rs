@@ -213,8 +213,11 @@ impl<'a, T: Copy> StreamWriter<'a, T> {
 
 
 impl<T: Copy> ReadStream<T> {
-    pub fn read_lock_try(&self, nmax: usize) -> Result<StreamReader<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
+    pub fn read_lock_try(&self, nmin: usize, nmax: usize) -> Result<StreamReader<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
         let guard = self.stream.buf.try_lock()?;
+        if (*guard).len() < nmin {
+            return Err(std::sync::TryLockError::WouldBlock); // FIXME: wrong error type
+        }
         let n = if nmax != 0 { std::cmp::min((*guard).len(), nmax) } else { (*guard).len() };
         Ok(StreamReader {
             stream: self.stream.clone(),
@@ -258,7 +261,7 @@ impl<T: Copy> WriteStream<T> {
     pub fn write_lock_try(&self, nmin: usize) -> Result<StreamWriter<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
         let guard = self.stream.buf.try_lock()?;
         if (*guard).available() < nmin {
-            return Err(std::sync::TryLockError::WouldBlock);
+            return Err(std::sync::TryLockError::WouldBlock); // FIXME: wrong error type
         }
         Ok(StreamWriter {
             stream: self.stream.clone(),
