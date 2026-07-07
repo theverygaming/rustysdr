@@ -255,8 +255,11 @@ impl<T: Copy> WriteStream<T> {
         )
     }
 
-    pub fn write_lock_try(&self) -> Result<StreamWriter<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
+    pub fn write_lock_try(&self, nmin: usize) -> Result<StreamWriter<'_, T>, TryLockError<MutexGuard<'_, CircularBuffer<T>>>> {
         let guard = self.stream.buf.try_lock()?;
+        if (*guard).available() < nmin {
+            return Err(std::sync::TryLockError::WouldBlock);
+        }
         Ok(StreamWriter {
             stream: self.stream.clone(),
             guard: guard,
