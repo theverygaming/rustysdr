@@ -9,6 +9,9 @@ fftw = { version = "0.8.0", default-features = false, features = ["source"] }
 [target.'cfg(unix)'.dependencies]
 fftw = { version = "0.8.0", default-features = false, features = ["system"] }
 
+[dependencies]
+num = "0.4"
+
 [dependencies.volk-rs]
 git = 'https://github.com/theverygaming/volk-rs.git'
 

@@ -45,6 +45,7 @@ pub struct RationalResampler<Tsamples> {
     interpolation: usize,
     delay_buf: AlignedVec<Tsamples>,
     taps: std::vec::Vec<AlignedVec<f32>>,
+    inc: usize,
     phase: usize,
 }
 
@@ -76,11 +77,13 @@ where
         assert!((interpolation > 0) && (decimation > 0), "interpolation and decimation may not be zero");
         let taps = design_resamp_filter(interpolation as f32, decimation as f32, 0.4);
         let polyphase_bank = generate_polyphase_bank(interpolation as usize, &taps);
+        let gcd = num::integer::gcd(interpolation, decimation);
         RationalResampler {
-            decimation: decimation,
-            interpolation: interpolation,
+            decimation: decimation / gcd,
+            interpolation: interpolation / gcd,
             delay_buf: AlignedVec::new_zeroed(polyphase_bank[0].len() * 2),
             taps: polyphase_bank,
+            inc: 0,
             phase: 0,
         }
     }
@@ -89,35 +92,48 @@ where
         self.delay_buf = AlignedVec::new_zeroed(self.taps[0].len() + self.taps[0].len() + block_size);
     }
 
-    // FIXME: this might be kinda broken
-    pub fn process(&mut self, input: &[Tsamples], output: &mut [Tsamples]) -> usize {
+    fn process_internal(&mut self, input: &[Tsamples], output: &mut [Tsamples]) -> usize {
         let n_taps = self.taps[0].len();
         let block_size = self.delay_buf.len() - n_taps;
+        assert!(input.len() <= block_size, "input size may not be larger than the configured block size");
+
+        // https://github.com/SatDump/SatDump/blob/39fc239627c449cd80c46a071d19621db59281d0/src-core/common/dsp/resamp/rational_resampler.cpp#L43-L64
+        let nsamples = input.len();
+        let mut outc = 0;
+
+        // add new input after old input history
+        self.delay_buf[n_taps - 1..(n_taps - 1) + nsamples].copy_from_slice(input);
+
+        while self.inc < nsamples {
+            output[outc] = self.dot_prod(&self.delay_buf[self.inc..self.inc + n_taps]);
+            outc += 1;
+
+            self.phase += self.decimation;
+            self.inc += self.phase / self.interpolation;
+            self.phase %= self.interpolation;
+        }
+
+        self.inc -= nsamples;
+
+        // copy old samples (history) to start of the buffer
+        self.delay_buf.copy_within(nsamples..nsamples + n_taps, 0);
+
+        return outc;
+    }
+
+    pub fn process(&mut self, input: &[Tsamples], output: &mut [Tsamples]) -> usize {
+        let max_input_size = self.delay_buf.len() - self.taps[0].len();
 
         let mut in_idx = 0;
         let mut out_idx = 0;
 
         while in_idx < input.len() {
-            let n = std::cmp::min(input.len() - in_idx, block_size);
+            let n = std::cmp::min(input.len() - in_idx, max_input_size);
 
-            // copy old samples to the start of the buffer
-            self.delay_buf.copy_within(n..n + n_taps - 1, 0);
+            let n_processed = self.process_internal(&input[in_idx..in_idx+n], &mut output[out_idx..]);
 
-            // add new input samples to the buffer
-            self.delay_buf[n_taps - 1..n_taps - 1 + n].copy_from_slice(&input[in_idx..in_idx + n]);
-            
-            let mut offset = 0;
-            while offset <= n - 1 {
-                output[out_idx] = self.dot_prod(&self.delay_buf[offset..offset + n_taps]);
-
-                self.phase += self.decimation;
-                offset += self.phase / self.interpolation;
-                self.phase %= self.interpolation;
-
-                out_idx += 1;
-            }
-
-            in_idx += offset;
+            in_idx += n;
+            out_idx += n_processed;
         }
 
         return out_idx;
