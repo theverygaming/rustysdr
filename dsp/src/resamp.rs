@@ -121,6 +121,7 @@ where
         return outc;
     }
 
+    // FIXME: this code is shared between FIR and resamp... Should probably be into some sort of common lib
     pub fn process(&mut self, input: &[Tsamples], output: &mut [Tsamples]) -> usize {
         let max_input_size = self.delay_buf.len() - self.taps[0].len();
 

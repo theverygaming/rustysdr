@@ -56,30 +56,49 @@ where
         self.delay_buf = AlignedVec::new_zeroed(self.taps.len() + block_size);
     }
 
-    // FIXME: this might be kinda broken, we fixed the resampler block, maybe we can fix this one too?
-    pub fn process(&mut self, input: &[Tsamples], output: &mut [Tsamples]) {
+    fn process_internal(&mut self, input: &[Tsamples], output: &mut [Tsamples]) -> usize {
         assert!(input.len() == output.len(), "mismatched lengths");
-
         let n_taps = self.taps.len();
         let block_size = self.delay_buf.len() - n_taps;
+        assert!(input.len() <= block_size, "input size may not be larger than the configured block size");
 
-        let mut data_idx = 0;
+        // https://github.com/SatDump/SatDump/blob/39fc239627c449cd80c46a071d19621db59281d0/src-core/common/dsp/resamp/rational_resampler.cpp#L43-L64
+        let nsamples = input.len();
+        let mut inc = 0;
+        let mut outc = 0;
 
-        while data_idx < input.len() {
-            let n = std::cmp::min(input.len() - data_idx, block_size);
+        // add new input after old input history
+        self.delay_buf[n_taps - 1..(n_taps - 1) + nsamples].copy_from_slice(input);
 
-            // copy old samples to the start of the buffer
-            self.delay_buf.copy_within(n..n + n_taps - 1, 0);
-
-            // add new input samples to the buffer
-            self.delay_buf[n_taps - 1..n_taps - 1 + n].copy_from_slice(&input[data_idx..data_idx + n]);
-
-            for i in 0..n {
-                output[data_idx + i] = self.dot_prod(&self.delay_buf[i..i + n_taps]);
-            }
-
-            data_idx += n;
+        while inc < nsamples {
+            output[outc] = self.dot_prod(&self.delay_buf[inc..inc + n_taps]);
+            inc += 1;
+            outc += 1;
         }
+
+        // copy old samples (history) to start of the buffer
+        self.delay_buf.copy_within(nsamples..nsamples + n_taps, 0);
+
+        return outc;
+    }
+
+    // FIXME: this code is shared between FIR and resamp... Should probably be into some sort of common lib
+    pub fn process(&mut self, input: &[Tsamples], output: &mut [Tsamples]) -> usize {
+        let max_input_size = self.delay_buf.len() - self.taps.len();
+
+        let mut in_idx = 0;
+        let mut out_idx = 0;
+
+        while in_idx < input.len() {
+            let n = std::cmp::min(input.len() - in_idx, max_input_size);
+
+            let n_processed = self.process_internal(&input[in_idx..in_idx+n], &mut output[out_idx..out_idx+n]);
+
+            in_idx += n;
+            out_idx += n_processed;
+        }
+
+        return out_idx;
     }
 }
 
