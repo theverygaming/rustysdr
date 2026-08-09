@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::iter::{Chain, Once};
 use volk_rs::vec::AlignedVec;
 use crate::error::DspError;
 
@@ -162,6 +163,21 @@ fn test() -> Result<(), DspError> {
     Ok(())
 }
 
+enum NormalOrChainedIter<T> {
+    One(Once<T>),
+    Two(Chain<Once<T>, Once<T>>),
+}
+
+impl<T> Iterator for NormalOrChainedIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            NormalOrChainedIter::One(iter) => iter.next(),
+            NormalOrChainedIter::Two(iter) => iter.next(),
+        }
+    }
+}
 
 struct LockfreeCircularBufferInner<T> {
     buf: AlignedVec<T>,
@@ -306,6 +322,16 @@ impl<'a, T: Copy> LockfreeCircularBufferReadGuard<'a, T> {
         )
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &[T]> {
+        let (a, b) = self.as_slices();
+
+        if b.len() != 0 {
+            NormalOrChainedIter::Two(std::iter::once(a).chain(std::iter::once(b)))
+        } else {
+            NormalOrChainedIter::One(std::iter::once(a))
+        }
+    }
+
     pub fn increment_read(&mut self, n: usize) -> Result<(), DspError> {
         if self.n_read + n > self.read_b1_max + self.read_b2_max {
             return Err(DspError::new("not enough len to read"));
@@ -380,6 +406,16 @@ impl<'a, T: Copy> LockfreeCircularBufferWriteGuard<'a, T> {
                 std::slice::from_raw_parts_mut((self.writer.inner.buf.as_ptr() as *mut T).add(self.write_start), self.write_b1_max),
                 std::slice::from_raw_parts_mut(self.writer.inner.buf.as_ptr() as *mut T, self.write_b2_max),
             )
+        }
+    }
+
+    pub fn iter(&mut self) -> impl Iterator<Item = &mut [T]> {
+        let (a, b) = self.as_mut_slices();
+
+        if b.len() != 0 {
+            NormalOrChainedIter::Two(std::iter::once(a).chain(std::iter::once(b)))
+        } else {
+            NormalOrChainedIter::One(std::iter::once(a))
         }
     }
 
@@ -529,8 +565,20 @@ fn test_lockfree_circularbuffer_multithread() {
                 continue;
             }
             let mut w = writer.write().unwrap();
-            w.write(&[n, n + 1, n + 2]).unwrap();
-            n += 3;
+            if (n % (3 * 300)) == 0 {
+                let mut nw = 0;
+                for data in w.iter() {
+                    for x in data.iter_mut() {
+                        *x = n;
+                        n += 1;
+                        nw += 1;
+                    }
+                }
+                w.increment_write(nw);
+            } else {
+                w.write(&[n, n + 1, n + 2]).unwrap();
+                n += 3;
+            }
             drop(w);
         }
     });
@@ -542,16 +590,15 @@ fn test_lockfree_circularbuffer_multithread() {
                 continue;
             }
             let mut r = reader.read().unwrap();
-            let (a, b) = r.as_slices();
-            for x in a.iter() {
-                assert_eq!(*x, n);
-                n += 1;
+            let mut n_it = 0;
+            for data in r.iter() {
+                for x in data.iter() {
+                    assert_eq!(*x, n);
+                    n += 1;
+                }
+                n_it += data.len();
             }
-            for x in b.iter() {
-                assert_eq!(*x, n);
-                n += 1;
-            }
-            r.increment_read(a.len() + b.len()).unwrap();
+            r.increment_read(n_it).unwrap();
             drop(r);
         }
     });
