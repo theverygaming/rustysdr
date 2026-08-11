@@ -314,3 +314,32 @@ fn test_stream_small() {
     t1.join().unwrap();
     t2.join().unwrap();
 }
+
+pub trait Stream3Reader<T> {
+    type Guard<'a>: Stream3ReadGuard<'a, T> where Self: 'a;
+
+    fn capacity(&self) -> usize;
+    fn len(&self) -> usize;
+    fn available(&self) -> usize;
+    fn start_read(&mut self) -> Result<Self::Guard<'_>, DspError>;
+}
+
+pub trait Stream3ReadGuard<'a, T> {
+    fn iter<'b>(&'b self) -> impl Iterator<Item = &'b [T]> where T: 'b;
+    fn increment_read(&mut self, n: usize) -> Result<(), DspError>;
+}
+
+pub trait Stream3Writer<T> {
+    type Guard<'a>: Stream3WriteGuard<'a, T> where Self: 'a;
+
+    fn capacity(&self) -> usize;
+    fn len(&self) -> usize;
+    fn available(&self) -> usize;
+    fn start_write(&mut self) -> Result<Self::Guard<'_>, DspError>;
+}
+
+pub trait Stream3WriteGuard<'a, T> {
+    fn iter<'b>(&'b mut self) -> impl Iterator<Item = &'b mut [T]> where T: 'b;
+    fn write(&mut self, data: &[T]) -> Result<(), DspError>;
+    fn increment_write(&mut self, n: usize) -> Result<(), DspError>;
+}
