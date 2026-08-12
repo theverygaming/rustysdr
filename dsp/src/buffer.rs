@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::iter::{Chain, Once};
 use volk_rs::vec::AlignedVec;
 use crate::error::DspError;
+use crate::stream::{Stream3Reader, Stream3ReadGuard, Stream3Writer, Stream3WriteGuard};
 
 pub struct CircularBuffer<T> {
     buf: AlignedVec<T>,
@@ -272,20 +273,22 @@ pub struct LockfreeCircularBufferReader<T> {
 
 unsafe impl<T: Send> Send for LockfreeCircularBufferReader<T> {}
 
-impl<T: Copy> LockfreeCircularBufferReader<T> {
-    pub fn capacity(&self) -> usize {
+impl<T: Copy> Stream3Reader<T> for LockfreeCircularBufferReader<T> {
+    type Guard<'a> = LockfreeCircularBufferReadGuard<'a, T> where T: 'a;
+
+    fn capacity(&self) -> usize {
         self.inner.capacity()
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.inner.len()
     }
 
-    pub fn available(&self) -> usize {
+    fn available(&self) -> usize {
         self.inner.available()
     }
 
-    pub fn read(&mut self) -> Result<LockfreeCircularBufferReadGuard<'_, T>, DspError> {
+    fn start_read(&mut self) -> Result<Self::Guard<'_>, DspError> {
         if self.active {
             return Err(DspError::new("only one reader may be active at a given time"));
         }
@@ -321,8 +324,10 @@ impl<'a, T: Copy> LockfreeCircularBufferReadGuard<'a, T> {
             &self.reader.inner.buf[0..self.read_b2_max],
         )
     }
+}
 
-    pub fn iter(&self) -> impl Iterator<Item = &[T]> {
+impl<'a, T: Copy> Stream3ReadGuard<'a, T> for LockfreeCircularBufferReadGuard<'a, T> {
+    fn iter<'b>(&'b self) -> impl Iterator<Item = &'b [T]> where T: 'b {
         let (a, b) = self.as_slices();
 
         if b.len() != 0 {
@@ -332,7 +337,7 @@ impl<'a, T: Copy> LockfreeCircularBufferReadGuard<'a, T> {
         }
     }
 
-    pub fn increment_read(&mut self, n: usize) -> Result<(), DspError> {
+    fn increment_read(&mut self, n: usize) -> Result<(), DspError> {
         if self.n_read + n > self.read_b1_max + self.read_b2_max {
             return Err(DspError::new("not enough len to read"));
         }
@@ -357,20 +362,22 @@ pub struct LockfreeCircularBufferWriter<T> {
 
 unsafe impl<T: Send> Send for LockfreeCircularBufferWriter<T> {}
 
-impl<T: Copy> LockfreeCircularBufferWriter<T> {
-    pub fn capacity(&self) -> usize {
+impl<T: Copy> Stream3Writer<T> for LockfreeCircularBufferWriter<T> {
+    type Guard<'a> = LockfreeCircularBufferWriteGuard<'a, T> where T: 'a;
+
+    fn capacity(&self) -> usize {
         self.inner.capacity()
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.inner.len()
     }
 
-    pub fn available(&self) -> usize {
+    fn available(&self) -> usize {
         self.inner.available()
     }
 
-    pub fn write(&mut self) -> Result<LockfreeCircularBufferWriteGuard<'_, T>, DspError> {
+    fn start_write(&mut self) -> Result<Self::Guard<'_>, DspError> {
         if self.active {
             return Err(DspError::new("only one writer may be active at a given time"));
         }
@@ -408,8 +415,10 @@ impl<'a, T: Copy> LockfreeCircularBufferWriteGuard<'a, T> {
             )
         }
     }
+}
 
-    pub fn iter(&mut self) -> impl Iterator<Item = &mut [T]> {
+impl<'a, T: Copy> Stream3WriteGuard<'a, T> for LockfreeCircularBufferWriteGuard<'a, T> {
+    fn iter<'b>(&'b mut self) -> impl Iterator<Item = &'b mut [T]> where T: 'b {
         let (a, b) = self.as_mut_slices();
 
         if b.len() != 0 {
@@ -419,7 +428,7 @@ impl<'a, T: Copy> LockfreeCircularBufferWriteGuard<'a, T> {
         }
     }
 
-    pub fn write(&mut self, data: &[T]) -> Result<(), DspError> {
+    fn write(&mut self, data: &[T]) -> Result<(), DspError> {
         if data.len() > self.write_b1_max + self.write_b2_max {
             return Err(DspError::new("not enough space"));
         }
@@ -435,7 +444,7 @@ impl<'a, T: Copy> LockfreeCircularBufferWriteGuard<'a, T> {
         Ok(())
     }
 
-    pub fn increment_write(&mut self, n: usize) -> Result<(), DspError> {
+    fn increment_write(&mut self, n: usize) -> Result<(), DspError> {
         if self.n_written + n > self.write_b1_max + self.write_b2_max {
             return Err(DspError::new("not enough available to write"));
         }
@@ -475,35 +484,35 @@ fn test_lockfree_circularbuffer() -> Result<(), DspError> {
     assert_eq!(r.len(), 0);
     assert_eq!(r.available(), 10);
 
-    let mut wr = w.write()?;
+    let mut wr = w.start_write()?;
     wr.write(&[0, 1, 2, 3, 4])?;
     drop(wr);
     assert_eq!(w.capacity(), 10);
     assert_eq!(w.len(), 5);
     assert_eq!(w.available(), 5);
 
-    let mut wr = w.write()?;
+    let mut wr = w.start_write()?;
     wr.write(&[5])?;
     drop(wr);
     assert_eq!(r.capacity(), 10);
     assert_eq!(r.len(), 6);
     assert_eq!(r.available(), 4);
 
-    let mut wr = w.write()?;
+    let mut wr = w.start_write()?;
     wr.write(&[6, 7, 8, 9])?;
     drop(wr);
     assert_eq!(w.capacity(), 10);
     assert_eq!(w.len(), 10);
     assert_eq!(w.available(), 0);
 
-    let mut wr = w.write()?;
+    let mut wr = w.start_write()?;
     match wr.write(&[10, 11, 12]) {
         Ok(()) => { panic!("expected error"); },
         Err(_) => {},
     }
     drop(wr);
 
-    let mut rr = r.read()?;
+    let mut rr = r.start_read()?;
     let (r1, r2) = rr.as_slices();
     assert_eq!(r1, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(r2, []);
@@ -516,20 +525,20 @@ fn test_lockfree_circularbuffer() -> Result<(), DspError> {
     assert_eq!(r.len(), 8);
     assert_eq!(r.available(), 2);
 
-    let rr = r.read()?;
+    let rr = r.start_read()?;
     let (r1, r2) = rr.as_slices();
     assert_eq!(r1, [2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(r2, []);
     drop(rr);
 
-    let mut wr = w.write()?;
+    let mut wr = w.start_write()?;
     wr.write(&[10, 11])?;
     drop(wr);
     assert_eq!(w.capacity(), 10);
     assert_eq!(w.len(), 10);
     assert_eq!(w.available(), 0);
 
-    let mut rr = r.read()?;
+    let mut rr = r.start_read()?;
     let (r1, r2) = rr.as_slices();
     assert_eq!(r1, [2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(r2, [10, 11]);
@@ -539,7 +548,7 @@ fn test_lockfree_circularbuffer() -> Result<(), DspError> {
     assert_eq!(r.len(), 1);
     assert_eq!(r.available(), 9);
 
-    let mut rr = r.read()?;
+    let mut rr = r.start_read()?;
     let (r1, r2) = rr.as_slices();
     assert_eq!(r1, [11]);
     assert_eq!(r2, []);
@@ -564,7 +573,7 @@ fn test_lockfree_circularbuffer_multithread() {
                 std::thread::yield_now();
                 continue;
             }
-            let mut w = writer.write().unwrap();
+            let mut w = writer.start_write().unwrap();
             if (n % (3 * 300)) == 0 {
                 let mut nw = 0;
                 for data in w.iter() {
@@ -574,7 +583,7 @@ fn test_lockfree_circularbuffer_multithread() {
                         nw += 1;
                     }
                 }
-                w.increment_write(nw);
+                w.increment_write(nw).unwrap();
             } else {
                 w.write(&[n, n + 1, n + 2]).unwrap();
                 n += 3;
@@ -589,7 +598,7 @@ fn test_lockfree_circularbuffer_multithread() {
                 std::thread::yield_now();
                 continue;
             }
-            let mut r = reader.read().unwrap();
+            let mut r = reader.start_read().unwrap();
             let mut n_it = 0;
             for data in r.iter() {
                 for x in data.iter() {
